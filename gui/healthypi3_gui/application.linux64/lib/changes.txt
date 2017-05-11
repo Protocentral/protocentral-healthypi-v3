@@ -1,0 +1,111 @@
+G4P changes incorporated into version
+
+V4.1.2 (31)
+fixes bug caused by a Processing bug introduced with 3.3.1 (https://github.com/processing/processing/issues/5026)
+
+V4.1.1 (30)
+fixes bug in GPanel setCollapsed(true) when the panel background is still visible and when panels are nested.
+
+Fixes bug in GCheckbox that made the control invisible if set false before the buffer is first drawn.
+
+Fixes bug in GGroup where setVisible(boolean) did not work
+
+Fixes bug in GGroup when fading duration <= 0
+
+Fixes bug in GWindow that meant windows created using GUI Builder could not find the close window handler.
+
+
+V4.1 (29)
+There is now greater control of the positioning of the icon and the ability to create animated icons for GButton, GLabel, GCheckbox and GOption. See the guides at http://lagers.org.uk/g4p/guides/g01-overview.html for more details.
+
+
+V4.0.5 (28)
+Fixes bug in GTextField where the scrolling text didn't keep up with a rapid typing rate or when a block of test was pasted in. (Ticket 13)
+
+
+V4.0.4 (27)
+Fixes bug in GTextArea when text is cleared and the control has focus (Ticket 12)
+
+GTextArea now fires GEvent.ENTERED event when the Return / Enter key is typed (Ticket 11)
+
+Sliders, knobs and scrollbars now respond to the mouse wheel (Ticket 10)
+
+
+V4.0.3 (26)
+Scrollbars improved visually
+
+GButton controls now have rounded corners
+
+Bug fix for displaying prompt text in GTextField and GTextArea controls
+
+Methods added to GCScheme for setting, changing and saving colours and palettes (schemes)
+
+Fixes bug in getSnapshot
+
+saveSnapshot methods added.
+
+
+V4.0.2 (25)
+Bug fix for setFont(...)
+
+
+V4.0.1 (24)
+Seamless support for use with Peasycam added.
+
+GWindow methods added: setVisible, getVisible, isVisible , setAlwaysOnTop, setLocation and getLocation
+
+Window closing code changed
+
+
+V4.0 (23)
+Major update for Processing V3, it will not work with previous versions of Processing.
+
+GPassord control no longer supports horizontal scroll bars, it didn't make sense use max password size instead. 
+
+GTextField and GTextArea the deprecated methods setDefaultText and getDefaultText have been removed use set/getPromptText instead.
+
+Major overhaul of multiple window support. Now uses the factory pattern to get instances of GWindow i.e. window = GWindow.getWindow(...) instead of window = new GWindow(...)
+No longer possible to create 'undecorated' frames.
+
+
+V3.5.4 (22)
+This is the last version of G4P to be compatible with Processing 2. All future versions will be for Processing 3. The source code is the same as 3.5.3 the changes are so that G4P plays nicely with PS3.
+
+
+V3.5.3 (21)
+Bug fixes errors when using GLabel in GWindow controls with GUI Builder
+
+V3.5.2 (20)
+Bug fixes for GTextField and GTextArea controls. My thanks to kowalski5233 for not only finding and reporting the problems, but also in testing the bug fixes prior to this release.
+
+
+V3.5.1 (19)
+Fixes bug in GPanel constructor without text parameter
+
+Fixes bug that alters font metrics in text controls on first use of setText
+
+Fixes bug in GTextField and GTextArea gains focus from mouse press and the text is a single space it will be selected and so replaced on first keypress.
+
+
+V3.5 (18)
+New control for entering password (GPassword)
+
+Support for displaying UTF8 characters added to GTextField and GTextArea controls
+
+Improved text rendering for controls with transparent background i.e. labels, sliders, radio buttons and checkboxes.
+
+GGroup objects allow controls to be grouped for common tasks e.g. enabling, visibility, transparency and fading. Group actions can executed immediately to after a user defined delay.
+
+GTextField & GTextArea - the setDefaultText method has been deprecated in favour of the setPromptText to make its purpose clearer.
+
+GTextArea - addStyle(...) methods added to set the text style of part or all of a display line. 
+
+GTextArea - insertText(...) methods added to insert text at a specified display line number/character position or at the current caret position.
+ 
+GTextArea - getCaretPos(...) methods added to retrieve the current caret position. 
+
+GImageToggleButton - the stateValue methods have been deprecated in favour of setState(...) and getState() methods.
+
+GDropList - it is now possible to remove, insert and add items to the control at runtime.
+
+GLabel, GButtom, GOption and GCheckbox - new method setHeightToFit() to change the controls height so it just surrounds the text and icon.
