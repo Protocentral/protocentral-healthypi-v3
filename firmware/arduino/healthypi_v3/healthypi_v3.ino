@@ -86,9 +86,13 @@
  */
 
 #include <SPI.h>
+#include <Wire.h>
 #include "wiring_private.h" // pinPeripheral() function
 #include "ads1292r.h"
 #include "afe4490.h"
+#include "max30205.h"
+
+
 
 #define IOPORT_PIN_LEVEL_HIGH 1
 #define IOPORT_PIN_LEVEL_LOW 0
@@ -107,9 +111,14 @@
 SPIClass ads1292rSPI (&sercom2, 4, 0, 1, SPI_PAD_2_SCK_3, SERCOM_RX_PAD_0);
 //SPI class(MISO
 SPIClass afe4490SPI (&sercom0, 17, 9 , 8, SPI_PAD_2_SCK_3, SERCOM_RX_PAD_0);    // ads1220 17 -->PA4 9-->  8-->
+//SPI class(MISO
+Uart  RpiSerial(&sercom4, 38, 22 , SERCOM_RX_PAD_1, UART_TX_PAD_0);    // ads1220 17 -->PA4 9-->  8-->
+
+TwoWire max30205(&sercom1, 11, 13);
+
 
 int8_t NewDataAvailable;
-uint8_t data_len = 19;
+uint8_t data_len = 23;
 
 volatile byte MSB;
 volatile byte data;
@@ -133,6 +142,12 @@ volatile float AFE4490fresultTemp = 0;
 volatile int32_t AFE4490iresultTemp = 0;
 volatile int32_t AFE4490voltageTemp = 0;
 volatile bool afe4490DataReceived = false;
+float  temp ;
+uint16_t temperature;
+uint8_t heartRate_ads1292=0;
+uint8_t spo2=0;
+uint8_t heartRate_BP=0;
+
 
 
 void ads1292_detection_callback(void)
@@ -205,18 +220,20 @@ void afe4490_detection_callback(void)
 
 void setup() {
   SerialUSB.begin(115200);
- 
+  RpiSerial.begin(57600);
   // do this first, for Reasons
 
+  max30205begin();
+ 
   ads1292Rbegin();
-
-   delay(100);
-   afe4490begin();   
+  delay(100);
+  afe4490begin();   
 }
 
 uint8_t i = 0;
 void loop() {
 
+#if 1
   if(!(millis()%1000))
   {
        SerialUSB.println(count); // print to check
@@ -260,6 +277,10 @@ void loop() {
    AFE4490sresultTempRED = (AFE4490sresultTempRED >> 10);// * 100;   
    
    digitalWrite(AFE4490_CS_PIN,HIGH);
+
+   temp = getTemperature()*100; // read temperature for every 100ms
+   temperature =  (uint16_t) temp;
+   
   
     DataPacket[0] = 0x0A;  // sync0
     DataPacket[1] = 0xFA;
@@ -286,22 +307,34 @@ void loop() {
     DataPacket[18] =  AFE4490sresultTempIR>>8;
     DataPacket[19] =  AFE4490sresultTempIR>>16;
     DataPacket[20] =  AFE4490sresultTempIR>>24;
+
+
+//SerialUSB.println(temp);
+    DataPacket[21] =  (uint8_t) temperature;
+    DataPacket[22] =  (uint8_t) (temperature >> 8);
+
     
-    DataPacket[21] =  0x1C;
-    DataPacket[22] =  120;
-    DataPacket[23] =  80;
+    DataPacket[23] =  heartRate_ads1292;   // calculated from ads1292r
+    DataPacket[24] =  spo2;
+
+    DataPacket[25] =  120;   // systolic pressure
+    DataPacket[26] =  80;     //diastolic pressure
+    DataPacket[27] =  heartRate_BP;  // from BP module
       
-    DataPacket[24] = 0x00;
-    DataPacket[25] = 0x0b;
+    DataPacket[28] = 0x00;
+    DataPacket[29] = 0x0b;
   
-   for(int i=0; i<26; i++) // transmit the data
+   for(int i=0; i<30; i++) // transmit the data
    {
-     SerialUSB.write(DataPacket[i]);
-              
+      SerialUSB.write(DataPacket[i]);
+     //delayMicroseconds(10);
+      RpiSerial.write(DataPacket[i]);        
    }
     afe4490DataReceived =  false;
     
     }
+#endif
+
 
 }
 
@@ -628,5 +661,49 @@ void AFE4490Write (uint8_t address, uint32_t data)
    digitalWrite(AFE4490_CS_PIN,HIGH);
 }
 
+void max30205begin()
+{
+  max30205.begin();
+  pinPeripheral(11, PIO_SERCOM);
+  pinPeripheral(13, PIO_SERCOM);
+  
+  I2CwriteByte(MAX30205_ADDRESS, MAX30205_CONFIGURATION, 0x00); //mode config
+  I2CwriteByte(MAX30205_ADDRESS, MAX30205_THYST ,      0x00); // set threshold
+  I2CwriteByte(MAX30205_ADDRESS, MAX30205_TOS,       0x00); //  
+
+}
+
+// Wire.h read and write protocols
+void I2CwriteByte(uint8_t address, uint8_t subAddress, uint8_t data)
+{
+  max30205.beginTransmission(address);  // Initialize the Tx buffer
+  max30205.write(subAddress);           // Put slave register address in Tx buffer
+  max30205.write(data);                 // Put data in Tx buffer
+  max30205.endTransmission();           // Send the Tx buffer
+}
+
+
+float getTemperature(void){
+  uint8_t readRaw[2] = {0}; 
+  float temperature; 
+    I2CreadBytes(MAX30205_ADDRESS,MAX30205_TEMPERATURE, &readRaw[0] ,2); // read two bytes
+  int16_t raw = readRaw[0] << 8 | readRaw[1];  //combine two bytes
+    temperature = raw  * 0.00390625;     // convert to temperature
+  return  temperature;
+}
+
+void I2CreadBytes(uint8_t address, uint8_t subAddress, uint8_t * dest, uint8_t count)
+{
+  max30205.beginTransmission(address);   // Initialize the Tx buffer
+  // Next send the register to be read. OR with 0x80 to indicate multi-read.
+  max30205.write(subAddress);     
+  max30205.endTransmission(false);
+  uint8_t i = 0;
+  max30205.requestFrom(address, count);  // Read bytes from slave register address
+  while (max30205.available())
+  {
+    dest[i++] = max30205.read(); 
+  }
+}
 
 
