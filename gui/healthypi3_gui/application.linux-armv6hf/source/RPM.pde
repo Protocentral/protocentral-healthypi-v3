@@ -57,10 +57,13 @@ class RPM
           n++;
       }
       lblRR.setText("Respiration: " + peaks+ " bpm");
+      global_rr=peaks;
       peaks = 0;
     } else
     {
       lblRR.setText("Respiration: 0 bpm");
     }
   }
+  
+  
 };

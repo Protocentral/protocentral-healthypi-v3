@@ -44,6 +44,7 @@ public class SPO2_cal
     SpO2 = (int)(SpO2 * 100);
     SpO2 = Math.round(SpO2/100);
     lblSPO2.setText("SpO2: "+ (SpO2+10)+" %");
+    global_spo2=(int)SpO2+10;
   }
   
   ////////////////////////////////////////////////////////////////////////////////////////////

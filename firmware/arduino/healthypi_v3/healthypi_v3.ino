@@ -117,6 +117,50 @@ Uart  RpiSerial(&sercom4, 38, 22 , SERCOM_RX_PAD_1, UART_TX_PAD_0);    // ads122
 TwoWire max30205(&sercom1, 11, 13);
 
 
+//Low pass bessel filter order=5 alpha1=0.016 
+class filter
+{
+  public:
+    filter()
+    {
+      for(int i=0; i <= 5; i++)
+        v[i]=0;
+    }
+  private:
+    short v[6];
+  public:
+    short step(short x)
+    {
+      v[0] = v[1];
+      v[1] = v[2];
+      v[2] = v[3];
+      v[3] = v[4];
+      v[4] = v[5];
+      long tmp = ((((x * 730349L) >> 21)  //= (   2.6569958266e-6 * x)
+        + ((v[0] * 563392L) >> 3) //+(  0.5372920725*v[0])
+        + ((v[1] * -793380L) >> 1)  //+( -3.0265040083*v[1])
+        + (v[2] * 895973L)  //+(  6.8357313605*v[2])
+        + (v[3] * -1014392L)  //+( -7.7391952732*v[3])
+        + (v[4] * 575746L)  //+(  4.3925908247*v[4])
+        )+65536) >> 17; // round and downshift fixed point /131072
+
+      v[5]= (short)tmp;
+      return (short)((/* xpart */
+         (((v[0] + v[5]))<<13) /* 524288L (^2)*/
+         + ((655360L * (v[1] + v[4]))>>1)
+         + /* xi==xj*/(655360L * (v[2] + v[3]))
+        )
++32768) >> 16; // round and downshift fixed point
+
+    }
+};
+
+
+
+filter fbp;// FilterBeHp5();
+
+
+
 int8_t NewDataAvailable;
 uint8_t data_len = 23;
 
@@ -148,7 +192,7 @@ uint8_t heartRate_ads1292=0;
 uint8_t spo2=0;
 uint8_t heartRate_BP=0;
 
-
+volatile long v[6];
 
 void ads1292_detection_callback(void)
 {
@@ -171,11 +215,33 @@ void ads1292_detection_callback(void)
     resultTemp = (uint32_t)((0x00 << 24) | (SPI_Dummy_Buff[3] << 16)| SPI_Dummy_Buff[4] << 8 | SPI_Dummy_Buff[5]);//6,7,8
     resultTemp = (uint32_t)(resultTemp << 8);
 
+
     sresultTempResp = (long)(resultTemp);
+
+   
     sresultTempResp = (sresultTempResp >> 8);   //  resultTemp = (uint32_t)(resultTemp << 8);
+
+      sresultTempResp = Filterstep(sresultTempResp);
+    
+
     ads1292DataReceived = true;
   
 }
+
+long Filterstep(long x)
+    {
+      v[0] = v[1];
+      v[1] = v[2];
+      long tmp = ((((x *    126L) >>  9)  //= (   3.8374579819e-3 * x)
+        + ((v[0] * -116L) >> 1) //+( -0.9074493728*v[0])
+        + (v[1] * 121L) //+(  1.8920995408*v[1])
+        )+32) >> 6; // round and downshift fixed point /64
+
+      v[2]= (long)tmp;
+      return (long)((
+         (v[0] + v[2])
+        +2 * v[1])); // 2^
+    }
 
 void afe4490_detection_callback(void)
 {
@@ -228,6 +294,9 @@ void setup() {
   ads1292Rbegin();
   delay(100);
   afe4490begin();   
+
+  for(int i=0; i <= 5; i++)
+        v[i]=0;
 }
 
 uint8_t i = 0;
@@ -705,5 +774,6 @@ void I2CreadBytes(uint8_t address, uint8_t subAddress, uint8_t * dest, uint8_t c
     dest[i++] = max30205.read(); 
   }
 }
+
 
 

@@ -79,8 +79,10 @@ class BPM
 
         lblHR.setText("Heart Rate:" + bpm+" bpm");
         beats = 0;
+        global_hr=bpm;
       } else
       {
+        
         lblHR.setText("Heart Rate:0 bpm");
 
       }

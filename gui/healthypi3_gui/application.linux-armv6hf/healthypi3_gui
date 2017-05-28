@@ -2,4 +2,4 @@
 
 APPDIR=$(readlink -f "$0")
 APPDIR=$(dirname "$APPDIR")
-java -Djna.nosys=true -Djava.library.path="$APPDIR:$APPDIR/lib" -cp "$APPDIR:$APPDIR/lib/healthypi3_gui.jar:$APPDIR/lib/core.jar:$APPDIR/lib/jogl-all.jar:$APPDIR/lib/gluegen-rt.jar:$APPDIR/lib/jogl-all-natives-linux-armv6hf.jar:$APPDIR/lib/gluegen-rt-natives-linux-armv6hf.jar:$APPDIR/lib/G4P.jar:$APPDIR/lib/jssc.jar:$APPDIR/lib/serial.jar:$APPDIR/lib/grafica.jar:$APPDIR/lib/controlP5.jar" healthypi3_gui "$@"
+java -Djna.nosys=true -Djava.library.path="$APPDIR:$APPDIR/lib" -cp "$APPDIR:$APPDIR/lib/healthypi3_gui.jar:$APPDIR/lib/core.jar:$APPDIR/lib/jogl-all.jar:$APPDIR/lib/gluegen-rt.jar:$APPDIR/lib/jogl-all-natives-linux-armv6hf.jar:$APPDIR/lib/gluegen-rt-natives-linux-armv6hf.jar:$APPDIR/lib/G4P.jar:$APPDIR/lib/jssc.jar:$APPDIR/lib/serial.jar:$APPDIR/lib/grafica.jar:$APPDIR/lib/controlP5.jar:$APPDIR/lib/mqtt.jar:$APPDIR/lib/org.eclipse.paho.client.mqttv3-1.0.1.jar" healthypi3_gui "$@"

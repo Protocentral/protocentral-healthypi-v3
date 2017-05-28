@@ -146,6 +146,42 @@ int updateCounter=0;
 
 boolean is_raspberrypi=true;
 
+long  thingSpeakPostTime = 0;
+import mqtt.*;
+
+int global_hr;
+int global_rr;
+float global_temp;
+int global_spo2;
+
+MQTTClient client;
+
+void updateMQTT()
+{
+    int ecg_tmp=0;
+   if(millis() > thingSpeakPostTime)
+   {
+
+        // Prepare a JSON payload string
+      String payload = "{";
+      payload += "\"heartrate\":\"" +global_hr+ "\",\"rr\":\"" + global_rr +"\"";
+      payload += ",\"spo2\":\"" +global_spo2+ "\",\"temperature\":\"" + global_temp +"\"";
+
+      payload += "}";
+    
+      client.publish( "v1/devices/me/telemetry", payload );
+      println(payload);
+      thingSpeakPostTime = millis()+ 5000;
+   }
+}   
+
+void initMQTT()
+{
+    client = new MQTTClient(this);
+    client.connect("mqtt://pcEuAxu7ZQ6wMFevblhh@ec2-54-255-214-27.ap-southeast-1.compute.amazonaws.com/", "healthypi3");
+    //client.subscribe("/example");
+}
+
 public void setup() 
 {
   println(System.getProperty("os.name"));
@@ -230,6 +266,8 @@ public void setup()
   {
     startSerial();
   }
+  
+  initMQTT();
 }
 
 public void makeGUI()
@@ -356,6 +394,7 @@ public void draw()
   plotResp.drawLines();
   plotResp.endDraw();
 
+  updateMQTT();
 }
 
 public void CloseApp() 
@@ -568,6 +607,7 @@ void ecsProcessData(char rxch)
           if (startPlot)
           {
             lblBP.setText("Blood Pressure: ---/---");
+            global_temp=Temp_Value;
             lblTemp.setText("Temperature: "+Temp_Value+" C");
           }
           updateCounter=0;
