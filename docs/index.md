@@ -2,56 +2,61 @@
 
 HealthyPi is the first fully open-source, full-featured vital sign monitor. Using the Raspberry Pi as its computing and display platform, the HealthyPi add-on HAT turns the Raspberry Pi into a vital sign monitoring system.
 
-If you don't already have one, you can buy [HealthyPi at Crowd Supply](https://www.crowdsupply.com/protocentral/healthypi-v3)
+If you don't already have one, you can buy [HealthyPi at Crowd Supply](https://www.crowdsupply.com/protocentral/healthypi-v3).
 
 Repository Contents
 -------------------
-* **/firmware** - Atmel studio  and aduino example sketches.
+* **/firmware** - Atmel studio and Arduino example sketches.
 * **/Hardware** - All Eagle design files (.brd, .sch)
 * **/extras** - includes the datasheet
 * **/gui** - HealthyPi GUI for Raspberry Pi and PC
 * **/docs** - Additional Documentation
 
-Getting Started with HealthyPi:
+Getting Started with HealthyPi
 ======================
 
 The HealthyPi was designed with not just one application in mind, but a variety of them. While it does function as a vital sign monitor for traditional patient monitoring applications, it can also be used for several other applications. You can use it with a Raspberry Pi using a display; use it with a Raspberry Pi with the official touchscreen using our “Complete Kit,” or you can use it standalone by connecting it to any computer’s USB port. The software is compatible across all platforms.
 
-### Getting started with HealthyPi on Raspberry Pi:
+### Getting started with a HealthyPi Complete Kit
 
-It's now easy to get started with our brand-new installation script. Just follow the following steps on your Raspberry Pi.
+If you have purchased the "HealthyPi Complete Kit", then it would already come with a Raspberry Pi and microSD storage with all the HealthyPi software pre-loaded and configured on it. Just plug it in and it should work.
+
+You would still need to assemble the display enclosure and the display stand for the provided [SmartiPi Touch Case](https://smarticase.com/collections/all/products/smartipi-touch). The SmartiPi Touch that comes included with the HealthyPi kit is already partly assembled. Check out the below video for instructions on how to assemble the kit.
+
+!<video>
+
+### Getting started with HealthyPi on Raspberry Pi
+
+If you have a Raspberry Pi setup already available, just follow the following steps on your Raspberry Pi. You will need a monitor and a keyboard/mouse and the Raspberry Pi should be running Raspbian before proceeding with HealthyPi installation. To find out how to install Raspbian check out this great tutorial on Raspberry Pi's official site.
 
 To start, open up the terminal window (Menu -> Accessories -> Terminal) on Raspbian running on your Raspberry Pi:
 
-![Open the terminal](docs/images/terminal.jpg)
+![Open the terminal](images/terminal.jpg)
 
 In the terminal window, type the following lines.
 
 ```bash
 curl -sS http://healthypi.protocentral.com/pi.sh | sudo bash
 ```
+It really is as simple as that. This code will install all the required overlays, configuration and application files to get the Healthy Pi up and running.
 
-It really is as simple as that !!
-
-This code will install all the required overlays, configuration and application files to get the Healthy Pi up and running.
-
-After the script reboots, you should be able to see the GUI display on the screen
+After the script reboots your Raspberry Pi, you should be able to see the GUI display the sensor outputs in real-time on the screen.
 
 ![GUI in Processing](images/hpi3-screen.jpg)
 
-### This completes the install!
+**This completes the install!**
 
-If the above script does not work for you and would like to do a manual installation or would like to customize the code, check out [Advanced HealthyPi] (/docs/advanced-healthypi.md).
+If the above script does not work for you and would like to do a manual installation or would like to customize the code, read on.
 
-## Using the HealthyPi GUI on Windows, MacOS and Linux
+## Getting started with the HealthyPi GUI on Windows, MacOS and Linux
 
 The HealthyPi board now streams the same data on the on-board USB port. This allows you to get the same data that goes to the Raspberry Pi, now on your desktop PC as well.
 
-Java 8 is required on all platforms for running the processing-based GUI application. You can download Java for your platform from the following link.
+*Java 8 is required on all platforms for running the processing-based GUI application. You can download Java for your platform from the following link.*
 
 [https://java.com/en/download/](https://java.com/en/download/)
 
-## Installing drivers (only for Windows)
+### Installing drivers (only for Windows)
 
 HealthyPi uses the same drivers as an Arduino Zero. Once plugged in to the USB port, the device would be recognized as an "Unknown Device". You can locate the device is the Windows Device Manager and manually install the drivers provided in the "drivers" folder in the Windows Executable ZIP archive provided.
 
@@ -59,7 +64,7 @@ MacOS and Linux do not need any drivers to be installed.
 
 ### Processing GUI Installation
 
-Download the zip file containing the executable files from the following links for 32-bit/64-bit Windows. If you do not know if you have a 64-bit or 32-bit computer, please download the 32-bit version.
+Download the zip file containing the executable files from the following links for 32-bit/64-bit Windows. If you do not know if you have a 64-bit or 32-bit computer, try with the 32-bit version.
 
 * [Windows 32-bit Executable (ZIP)](https://github.com/Protocentral/HealthyPi/releases/download/v0.2/healthypi_gui_win32.zip)
 * [Windows 64-bit Executable (ZIP)](https://github.com/Protocentral/HealthyPi/releases/download/v0.2/healthypi_gui_win64.zip)
@@ -70,48 +75,42 @@ Download the zip file containing the executable files from the following links f
 Simply download the appropriate file for your operating system, unzip the contents and run the executable program contained in it.
 
 Programming the on-board SAMD21 microcontroller
---------------------------------------------------
+-----------------------------------------------
 
 HealthyPi now supports programming using Arduino !
 
 If you wish to program your own code on the HealthyPi board, check out [Modifying and recompiling HealthyPi Firmware](/docs/recompiling-firmware.md).
 
-Connecting the ECG Electrodes
+Connecting the sensors
 ------------------------------
- A 3-electrode cable along with a standard stereo jack is provided along with the shield to connect the electrodes to the  board.
- The other side of the electrode connector would connect to snap-on electrodes attached to the body. For testing purposes,    you can use an ECG simulator to provide inputs to the board.
 
- Warning:
- When connecting the electodes to the body, it is safer to disconnect the mains power source to the Arduino. For example, if  you are using the Arduino along with a laptop, disconnecting the battery charger from the laptop would be a safe option.
+### Connecting the ECG/Respiration Electrodes
 
-Placing the Electrodes on the body
----------------------------------
+A 3-electrode cable along with a standard stereo jack is provided along with the shield to connect the electrodes to the  board.
+The other side of the electrode connector would connect to snap-on electrodes attached to the body. For testing purposes, you can use an ECG simulator to provide inputs to the board.
+
+**Important Warning:**
+When connecting the electrodes to the body, it is safer to disconnect the mains power source to the Arduino. For example, if  you are using the Arduino along with a laptop, disconnecting the battery charger from the laptop would be a safe option.
+
+Place the electrodes on the body in these positions to get the best signal. However, placing it in other positions on the chest would work as well with differing ECG signal patterns. For getting respiration using the [Impedance Pneumography](http://www.ti.com/lit/an/sbaa181/sbaa181.pdf), it's best
+
 ![Wearing the Electrode](images/connecting electrodes.png)
-
 
 License Information
 ===================
 
 This product is open source! Both, our hardware and software are open source and licensed under the following licenses:
 
-Hardware
----------
+### Hardware
 
-**All hardware is released under [Creative Commons Share-alike 4.0 International](http://creativecommons.org/licenses/by-sa/4.0/).**
+All hardware is released under [Creative Commons Share-alike 4.0 International](http://creativecommons.org/licenses/by-sa/4.0/).
 
 ![CC-BY-SA-4.0](https://i.creativecommons.org/l/by-sa/4.0/88x31.png)
 
-Software
---------
+### Software
 
-**All software is released under the MIT License(http://opensource.org/licenses/MIT).**
+All software is released under the MIT License(http://opensource.org/licenses/MIT).
 
 Please check [*LICENSE.md*](LICENSE.md) for detailed license descriptions.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
