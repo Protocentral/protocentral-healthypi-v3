@@ -13,7 +13,7 @@ Repository Contents
 * **/docs** - Additional Documentation
 
 Getting Started with HealthyPi:
-----------------------------------
+======================
 
 The HealthyPi was designed with not just one application in mind, but a variety of them. While it does function as a vital sign monitor for traditional patient monitoring applications, it can also be used for several other applications. You can use it with a Raspberry Pi using a display; use it with a Raspberry Pi with the official touchscreen using our “Complete Kit,” or you can use it standalone by connecting it to any computer’s USB port. The software is compatible across all platforms.
 
@@ -43,15 +43,15 @@ After the script reboots, you should be able to see the GUI display on the scree
 
 If the above script does not work for you and would like to do a manual installation or would like to customize the code, check out [Advanced HealthyPi] (/docs/advanced-healthypi.md).
 
-Using the HealthyPi GUI on Windows, MacOS and Linux
----------------------------------------------------
+## Using the HealthyPi GUI on Windows, MacOS and Linux
+
 The HealthyPi board now streams the same data on the on-board USB port. This allows you to get the same data that goes to the Raspberry Pi, now on your desktop PC as well.
 
 Java 8 is required on all platforms for running the processing-based GUI application. You can download Java for your platform from the following link.
 
 [https://java.com/en/download/](https://java.com/en/download/)
 
-#### Installing drivers (only for Windows)
+## Installing drivers (only for Windows)
 
 HealthyPi uses the same drivers as an Arduino Zero. Once plugged in to the USB port, the device would be recognized as an "Unknown Device". You can locate the device is the Windows Device Manager and manually install the drivers provided in the "drivers" folder in the Windows Executable ZIP archive provided.
 
