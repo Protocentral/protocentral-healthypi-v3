@@ -12,8 +12,7 @@ Repository Contents
 * **/gui** - HealthyPi GUI for Raspberry Pi and PC
 * **/docs** - Additional Documentation
 
-Getting Started with HealthyPi
-======================
+# Getting Started with HealthyPi
 
 The HealthyPi was designed with not just one application in mind, but a variety of them. While it does function as a vital sign monitor for traditional patient monitoring applications, it can also be used for several other applications. You can use it with a Raspberry Pi using a display; use it with a Raspberry Pi with the official touchscreen using our “Complete Kit,” or you can use it standalone by connecting it to any computer’s USB port. The software is compatible across all platforms.
 
@@ -74,30 +73,49 @@ Download the zip file containing the executable files from the following links f
 
 Simply download the appropriate file for your operating system, unzip the contents and run the executable program contained in it.
 
-Programming the on-board SAMD21 microcontroller
------------------------------------------------
-
-HealthyPi now supports programming using Arduino !
-
-If you wish to program your own code on the HealthyPi board, check out [Modifying and recompiling HealthyPi Firmware](/docs/recompiling-firmware.md).
-
-Connecting the sensors
-------------------------------
+# Connecting the sensors
 
 ### Connecting the ECG/Respiration Electrodes
 
 A 3-electrode cable along with a standard stereo jack is provided along with the shield to connect the electrodes to the  board.
 The other side of the electrode connector would connect to snap-on electrodes attached to the body. For testing purposes, you can use an ECG simulator to provide inputs to the board.
 
+[Photo of plugging in the ECG connector]
+
 **Important Warning:**
 When connecting the electrodes to the body, it is safer to disconnect the mains power source to the Arduino. For example, if  you are using the Arduino along with a laptop, disconnecting the battery charger from the laptop would be a safe option.
 
-Place the electrodes on the body in these positions to get the best signal. However, placing it in other positions on the chest would work as well with differing ECG signal patterns. For getting respiration using the [Impedance Pneumography](http://www.ti.com/lit/an/sbaa181/sbaa181.pdf), it's best
+Place the electrodes on the body in these positions to get the best signal. However, placing it in other positions on the chest would work as well with differing ECG signal patterns. For getting respiration using the [Impedance Pneumography](http://www.ti.com/lit/an/sbaa181/sbaa181.pdf), it's best to wear them on the chest as given in the figure below to get the best signal.
 
 ![Wearing the Electrode](images/connecting electrodes.png)
 
-License Information
-===================
+### Connecting the Pulse Oximetry Probe
+
+[Pulse oximetry] is an optical method of non-invasively measuring the oxygen content in the blood. This is achieved with the help of a finger-clip probe that contains some LEDs on one side of the clip and a photo-detector on the other side.
+
+The LEDs emit light in the red and IR wavelengths. Some of these are absorbed by the blood and the rest is transmitted through to the other side of  the finger, which is is picked up by the photo-detector. The Pulse Oximetry front-end measures this variance in the transmitted light intensity to display the Photoplethysmogram (PPG) signal. SpO2 is a computed value derived from the Red and IR PPG signal.
+
+To start measuring, simply plug-in the provided SpO2 finger-clip probe to the DB9 connector on the HealthyPi main board. If the probe is properly plugged in, you should see a Red glow inside the probe.
+
+[Photo of plugging in the DB9 connector]
+
+### Connecting the temperature sensor
+
+A digital human body temperature sensor based on the MAX30205 from Maxim Integrated is provided. This sensor provides direct, calibrated temperature values over a digital I2C interface. This comes pre-connected with the HealthyPi through a simple screw-terminal based connector and a cable for maximum flexibility.
+
+[Photo of temperature sensor connector]
+
+If you ever remove the sensor and wish to connect it back to the HealthyPi, please wire it in the sequence shown in the following picture.
+
+[Photo of temperature sensor connector with color codes]
+
+# Advanced Programming the on-board SAMD21 microcontroller
+
+HealthyPi now supports programming using Arduino !
+
+If you wish to program your own code on the HealthyPi board, check out [Modifying and recompiling HealthyPi Firmware](/docs/recompiling-firmware.md).
+
+# License Information
 
 This product is open source! Both, our hardware and software are open source and licensed under the following licenses:
 
