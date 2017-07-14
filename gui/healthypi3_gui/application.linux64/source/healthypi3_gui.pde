@@ -39,6 +39,7 @@ import java.text.SimpleDateFormat;
 // General Java Package
 import java.math.*;
 import controlP5.*;
+import http.requests.*;
 
 ControlP5 cp5;
 
@@ -77,7 +78,7 @@ char CES_Pkt_ECG_Counter[] = new char[4];                    // Buffer to hold E
 char CES_Pkt_Resp_Counter[] = new char[4];                   // Respiration Buffer
 char CES_Pkt_SpO2_Counter_RED[] = new char[4];               // Buffer for SpO2 RED
 char CES_Pkt_SpO2_Counter_IR[] = new char[4];                // Buffer for SpO2 IR
-int pSize = 500;                                            // Total Size of the buffer
+int pSize = 1000;                                            // Total Size of the buffer
 int arrayIndex = 0;                                          // Increment Variable for the buffer
 float time = 0;                                              // X axis increment variable
 
@@ -156,22 +157,41 @@ int global_spo2;
 
 MQTTClient client;
 
+int global_test=0;
+
 void updateMQTT()
 {
-    int ecg_tmp=0;
    if(millis() > thingSpeakPostTime)
    {
-
+      /*
         // Prepare a JSON payload string
       String payload = "{";
-      payload += "\"heartrate\":\"" +global_hr+ "\",\"rr\":\"" + global_rr +"\"";
-      payload += ",\"spo2\":\"" +global_spo2+ "\",\"temperature\":\"" + global_temp +"\"";
+      //payload += "\"heartrate\":\"" +global_hr+ "\",\"rr\":\"" + global_rr +"\"";
+      payload += "heartrate:" +global_hr+ ",rr:" + global_rr +"";
+      
+      //payload += ",\"spo2\":\"" +global_spo2+ "\",\"temperature\":\"" + global_temp +"\"";
 
       payload += "}";
     
       client.publish( "v1/devices/me/telemetry", payload );
+      //client.publish( "akw/feeds/healthypi-hr", ""+ global_test +"");//payload );//"test");// 
       println(payload);
+      global_test++;
       thingSpeakPostTime = millis()+ 5000;
+      */
+      /*
+      PostRequest post = new PostRequest("https://groker.initialstate.com/api/events?accessKey=hEAEGKCJXAfxoqoeuh7DaumZuyZvOPlJ&bucketKey=VLFRQWYQEVF5");
+      post.addData("heartrate", str(global_hr) );
+      post.addData("rr", str(global_rr));
+      post.addData("spo2", str(global_spo2));
+      post.addData("temperature", str(global_temp));
+      
+      post.send();
+      //System.out.println("Reponse Content: " + post.getContent());
+      //System.out.println("Reponse Content-Length Header: " + post.getHeader("Content-Length"));
+
+      thingSpeakPostTime = millis()+ 5000;    
+      */
    }
 }   
 
@@ -179,7 +199,9 @@ void initMQTT()
 {
     client = new MQTTClient(this);
     client.connect("mqtt://pcEuAxu7ZQ6wMFevblhh@ec2-54-255-214-27.ap-southeast-1.compute.amazonaws.com/", "healthypi3");
-    //client.subscribe("/example");
+    //client.connect("mqtt://akw:4746bf5b83de4d5db4e4c03ad8b304cd@io.adafruit.com", "");
+    
+    client.subscribe("akw/feeds/healthypi");
 }
 
 public void setup() 
@@ -554,8 +576,10 @@ void ecsProcessData(char rxch)
 
         float Temp_Value = (float) ((int) CES_Pkt_Data_Counter[16]| CES_Pkt_Data_Counter[17]<<8)/100;                // Temperature
         // BP Value Systolic and Diastolic
-        int BP_Value_Sys = (int) CES_Pkt_Data_Counter[17];
-        int BP_Value_Dia = (int) CES_Pkt_Data_Counter[18];
+        int global_RespirationRate = (int) (CES_Pkt_Data_Counter[18]-25);
+        int global_HeartRate = (int) (CES_Pkt_Data_Counter[20]);
+        //int BP_Value_Sys = (int) CES_Pkt_Data_Counter[17];
+        //int BP_Value_Dia = (int) CES_Pkt_Data_Counter[18];
 
         int data1 = ecsParsePacket(CES_Pkt_ECG_Counter, CES_Pkt_ECG_Counter.length-1);
         ecg = (double) data1/(Math.pow(10, 3));
@@ -595,12 +619,15 @@ void ecsProcessData(char rxch)
         rpmArray[arrayIndex] = (float)resp;
         ppgArray[arrayIndex] = (float)spo2;
 
+        lblRR.setText("Respiration: " + global_RespirationRate+ " rpm");
+        lblHR.setText("Heart Rate: " + global_HeartRate + " bpm");
+        
         arrayIndex++;
         updateCounter++;
 
-        hr.bpmCalc(bpmArray);                                        // HeartRate Calculation 
+        //hr.bpmCalc(bpmArray);                                        // HeartRate Calculation 
         s.rawDataArray(spo2Array_IR, spo2Array_RED, irAvg, redAvg);  // SpO2 Calculation
-        rpm1.rpmCalc(rpmArray);                                      // Respiration Calculation
+        //rpm1.rpmCalc(rpmArray);                                      // Respiration Calculation
         
         if(updateCounter==100)
         {
@@ -609,6 +636,7 @@ void ecsProcessData(char rxch)
             lblBP.setText("Blood Pressure: ---/---");
             global_temp=Temp_Value;
             lblTemp.setText("Temperature: "+Temp_Value+" C");
+            
           }
           updateCounter=0;
         }
@@ -617,7 +645,6 @@ void ecsProcessData(char rxch)
         {  
           arrayIndex = 0;
           time = 0;
-
         }       
 
         // If record button is clicked, then logging is done

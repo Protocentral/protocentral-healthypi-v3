@@ -17,6 +17,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat; 
 import java.math.*; 
 import controlP5.*; 
+import http.requests.*; 
 import mqtt.*; 
 
 import java.util.HashMap; 
@@ -72,6 +73,7 @@ public class healthypi3_gui extends PApplet {
 
 
 
+
 ControlP5 cp5;
 
 Textlabel lblHR;
@@ -109,7 +111,7 @@ char CES_Pkt_ECG_Counter[] = new char[4];                    // Buffer to hold E
 char CES_Pkt_Resp_Counter[] = new char[4];                   // Respiration Buffer
 char CES_Pkt_SpO2_Counter_RED[] = new char[4];               // Buffer for SpO2 RED
 char CES_Pkt_SpO2_Counter_IR[] = new char[4];                // Buffer for SpO2 IR
-int pSize = 500;                                            // Total Size of the buffer
+int pSize = 1000;                                            // Total Size of the buffer
 int arrayIndex = 0;                                          // Increment Variable for the buffer
 float time = 0;                                              // X axis increment variable
 
@@ -188,22 +190,41 @@ int global_spo2;
 
 MQTTClient client;
 
+int global_test=0;
+
 public void updateMQTT()
 {
-    int ecg_tmp=0;
    if(millis() > thingSpeakPostTime)
    {
-
+      /*
         // Prepare a JSON payload string
       String payload = "{";
-      payload += "\"heartrate\":\"" +global_hr+ "\",\"rr\":\"" + global_rr +"\"";
-      payload += ",\"spo2\":\"" +global_spo2+ "\",\"temperature\":\"" + global_temp +"\"";
+      //payload += "\"heartrate\":\"" +global_hr+ "\",\"rr\":\"" + global_rr +"\"";
+      payload += "heartrate:" +global_hr+ ",rr:" + global_rr +"";
+      
+      //payload += ",\"spo2\":\"" +global_spo2+ "\",\"temperature\":\"" + global_temp +"\"";
 
       payload += "}";
     
       client.publish( "v1/devices/me/telemetry", payload );
+      //client.publish( "akw/feeds/healthypi-hr", ""+ global_test +"");//payload );//"test");// 
       println(payload);
+      global_test++;
       thingSpeakPostTime = millis()+ 5000;
+      */
+      /*
+      PostRequest post = new PostRequest("https://groker.initialstate.com/api/events?accessKey=hEAEGKCJXAfxoqoeuh7DaumZuyZvOPlJ&bucketKey=VLFRQWYQEVF5");
+      post.addData("heartrate", str(global_hr) );
+      post.addData("rr", str(global_rr));
+      post.addData("spo2", str(global_spo2));
+      post.addData("temperature", str(global_temp));
+      
+      post.send();
+      //System.out.println("Reponse Content: " + post.getContent());
+      //System.out.println("Reponse Content-Length Header: " + post.getHeader("Content-Length"));
+
+      thingSpeakPostTime = millis()+ 5000;    
+      */
    }
 }   
 
@@ -211,7 +232,9 @@ public void initMQTT()
 {
     client = new MQTTClient(this);
     client.connect("mqtt://pcEuAxu7ZQ6wMFevblhh@ec2-54-255-214-27.ap-southeast-1.compute.amazonaws.com/", "healthypi3");
-    //client.subscribe("/example");
+    //client.connect("mqtt://akw:4746bf5b83de4d5db4e4c03ad8b304cd@io.adafruit.com", "");
+    
+    client.subscribe("akw/feeds/healthypi");
 }
 
 public void setup() 
@@ -586,8 +609,10 @@ public void ecsProcessData(char rxch)
 
         float Temp_Value = (float) ((int) CES_Pkt_Data_Counter[16]| CES_Pkt_Data_Counter[17]<<8)/100;                // Temperature
         // BP Value Systolic and Diastolic
-        int BP_Value_Sys = (int) CES_Pkt_Data_Counter[17];
-        int BP_Value_Dia = (int) CES_Pkt_Data_Counter[18];
+        int global_RespirationRate = (int) (CES_Pkt_Data_Counter[18]-25);
+        int global_HeartRate = (int) (CES_Pkt_Data_Counter[20]);
+        //int BP_Value_Sys = (int) CES_Pkt_Data_Counter[17];
+        //int BP_Value_Dia = (int) CES_Pkt_Data_Counter[18];
 
         int data1 = ecsParsePacket(CES_Pkt_ECG_Counter, CES_Pkt_ECG_Counter.length-1);
         ecg = (double) data1/(Math.pow(10, 3));
@@ -627,12 +652,15 @@ public void ecsProcessData(char rxch)
         rpmArray[arrayIndex] = (float)resp;
         ppgArray[arrayIndex] = (float)spo2;
 
+        lblRR.setText("Respiration: " + global_RespirationRate+ " rpm");
+        lblHR.setText("Heart Rate: " + global_HeartRate + " bpm");
+        
         arrayIndex++;
         updateCounter++;
 
-        hr.bpmCalc(bpmArray);                                        // HeartRate Calculation 
+        //hr.bpmCalc(bpmArray);                                        // HeartRate Calculation 
         s.rawDataArray(spo2Array_IR, spo2Array_RED, irAvg, redAvg);  // SpO2 Calculation
-        rpm1.rpmCalc(rpmArray);                                      // Respiration Calculation
+        //rpm1.rpmCalc(rpmArray);                                      // Respiration Calculation
         
         if(updateCounter==100)
         {
@@ -641,6 +669,7 @@ public void ecsProcessData(char rxch)
             lblBP.setText("Blood Pressure: ---/---");
             global_temp=Temp_Value;
             lblTemp.setText("Temperature: "+Temp_Value+" C");
+            
           }
           updateCounter=0;
         }
@@ -649,7 +678,6 @@ public void ecsProcessData(char rxch)
         {  
           arrayIndex = 0;
           time = 0;
-
         }       
 
         // If record button is clicked, then logging is done
@@ -729,6 +757,9 @@ class BPM
   float minimizedVolt[] = new float[pSize];            // Stores the absoulte values in the buffer
   int beats = 0, bpm = 0;                              // Variables to store the no.of peaks and bpm
 
+   
+      
+
   ////////////////////////////////////////////////////////////////////////////////////////////
   //  - Heart Value is calculated by:
   //          * Setting a threshold value which is between the minimum and maximum value
@@ -737,6 +768,53 @@ class BPM
   //   
   ////////////////////////////////////////////////////////////////////////////////////////////
 
+      public int[] QRS(float[] lowPass, int nsamp) 
+      {
+          int[] QRS = new int[nsamp];
+   
+          double treshold = 0;
+   
+          //\u5148\u5f9e\u6240\u6709\u503c\u4e2d\u627e\u51fa\u6700\u5927\u503c\u7576Threshold
+          for(int i=0; i<200; i++) {
+              if(lowPass[i] > treshold) {
+                  treshold = lowPass[i];
+              }
+          }
+   
+          int frame = 250; //window size \u53d6\u524d250\u500b\u4e2d\u6700\u5927\u7684\u503c\u7576PEAK
+          
+          for(int i=0; i<lowPass.length; i+=frame) { //\u6bcf250\u7b46data\u7b97\u4e00\u6b21
+              float max = 0;
+              int index = 0;
+              if(i + frame > lowPass.length) { //\u5982\u679c\u8d85\u904e\u5247\u70ba\u6700\u5f8c\u4e00\u500b
+                  index = lowPass.length;
+              }
+              else {
+                  index = i + frame;
+              }
+              for(int j=i; j<index; j++) {
+                  if(lowPass[j] > max) max = lowPass[j]; //250\u500bdata\u4e2d\u7684\u6700\u5927\u503c
+              }
+              boolean added = false;
+              for(int j=i; j<index; j++) {
+                  if(lowPass[j] > treshold && !added) {
+                      QRS[j] = 1; //\u627e\u5230R\u9ede\uff0c250\u500b\u88e1\u9762\u5c31\u4e0d\u518d\u7e7c\u7e8c\u627e (\u7d040.5\u79d2)
+                            //\u82e5\u4e4b\u5f8c\u6539\u6210real time\u5247frame\u53ef\u4ee5\u6539\u70ba1
+                      added = true;
+                  }
+                  else {
+                      QRS[j] = 0;
+                  }
+              }   
+              double gama = (Math.random() > 0.5f) ? 0.15f : 0.20f;
+              double alpha = 0.01f + (Math.random() * ((0.1f - 0.01f)));
+   
+              treshold = alpha * gama * max + (1 - alpha) * treshold;   
+          }
+   
+          return QRS;
+      }
+      
   public void bpmCalc(float[] recVoltage)
   {
 
@@ -762,7 +840,7 @@ class BPM
 
     if ((int)min == (int)max)
     {
-      lblHR.setText("Heart Rate: 0 bpm");
+      //lblHR.setText("Heart Rate: 0 bpm");
     } else
     {
       threshold = min+max;                                     // Calculating the threshold value
@@ -781,13 +859,13 @@ class BPM
         }
         bpm = (beats*60)/8;
 
-        lblHR.setText("Heart Rate:" + bpm+" bpm");
+        //lblHR.setText("Heart Rate:" + bpm+" bpm");
         beats = 0;
         global_hr=bpm;
       } else
       {
         
-        lblHR.setText("Heart Rate:0 bpm");
+        //lblHR.setText("Heart Rate:0 bpm");
 
       }
     }
@@ -851,12 +929,12 @@ class RPM
         } else
           n++;
       }
-      lblRR.setText("Respiration: " + peaks+ " bpm");
-      global_rr=peaks;
+      //lblRR.setText("Respiration: " + peaks+ " bpm");
+      global_rr=peaks; 
       peaks = 0;
     } else
     {
-      lblRR.setText("Respiration: 0 bpm");
+      //lblRR.setText("Respiration: 0 bpm");
     }
   }
   
@@ -907,7 +985,7 @@ public class SPO2_cal
     float SpO2=110-25*(value);
     SpO2 = (int)(SpO2 * 100);
     SpO2 = Math.round(SpO2/100);
-    lblSPO2.setText("SpO2: "+ (SpO2+10)+" %");
+    lblSPO2.setText("SpO2: "+ (SpO2+12)+" %");
     global_spo2=(int)SpO2+10;
   }
   

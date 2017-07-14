@@ -25,6 +25,9 @@ class BPM
   float minimizedVolt[] = new float[pSize];            // Stores the absoulte values in the buffer
   int beats = 0, bpm = 0;                              // Variables to store the no.of peaks and bpm
 
+   
+      
+
   ////////////////////////////////////////////////////////////////////////////////////////////
   //  - Heart Value is calculated by:
   //          * Setting a threshold value which is between the minimum and maximum value
@@ -33,6 +36,53 @@ class BPM
   //   
   ////////////////////////////////////////////////////////////////////////////////////////////
 
+      int[] QRS(float[] lowPass, int nsamp) 
+      {
+          int[] QRS = new int[nsamp];
+   
+          double treshold = 0;
+   
+          //先從所有值中找出最大值當Threshold
+          for(int i=0; i<200; i++) {
+              if(lowPass[i] > treshold) {
+                  treshold = lowPass[i];
+              }
+          }
+   
+          int frame = 250; //window size 取前250個中最大的值當PEAK
+          
+          for(int i=0; i<lowPass.length; i+=frame) { //每250筆data算一次
+              float max = 0;
+              int index = 0;
+              if(i + frame > lowPass.length) { //如果超過則為最後一個
+                  index = lowPass.length;
+              }
+              else {
+                  index = i + frame;
+              }
+              for(int j=i; j<index; j++) {
+                  if(lowPass[j] > max) max = lowPass[j]; //250個data中的最大值
+              }
+              boolean added = false;
+              for(int j=i; j<index; j++) {
+                  if(lowPass[j] > treshold && !added) {
+                      QRS[j] = 1; //找到R點，250個裡面就不再繼續找 (約0.5秒)
+                            //若之後改成real time則frame可以改為1
+                      added = true;
+                  }
+                  else {
+                      QRS[j] = 0;
+                  }
+              }   
+              double gama = (Math.random() > 0.5) ? 0.15 : 0.20;
+              double alpha = 0.01 + (Math.random() * ((0.1 - 0.01)));
+   
+              treshold = alpha * gama * max + (1 - alpha) * treshold;   
+          }
+   
+          return QRS;
+      }
+      
   void bpmCalc(float[] recVoltage)
   {
 
@@ -58,7 +108,7 @@ class BPM
 
     if ((int)min == (int)max)
     {
-      lblHR.setText("Heart Rate: 0 bpm");
+      //lblHR.setText("Heart Rate: 0 bpm");
     } else
     {
       threshold = min+max;                                     // Calculating the threshold value
@@ -77,13 +127,13 @@ class BPM
         }
         bpm = (beats*60)/8;
 
-        lblHR.setText("Heart Rate:" + bpm+" bpm");
+        //lblHR.setText("Heart Rate:" + bpm+" bpm");
         beats = 0;
         global_hr=bpm;
       } else
       {
         
-        lblHR.setText("Heart Rate:0 bpm");
+        //lblHR.setText("Heart Rate:0 bpm");
 
       }
     }
