@@ -58,5 +58,7 @@ application.linux64
 application.windows32
 application.windows64
 application.macosx
-application.linux-arm64/**
-application.linux-armv6hf/**
+gui/healthypi3_gui/application.linux-arm64/**
+gui/healthypi3_gui/application.linux-armv6hf/**
+application.linux-arm64
+application.linux-armv6hf
