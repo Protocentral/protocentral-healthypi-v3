@@ -16,7 +16,7 @@ Repository Contents
 
 The HealthyPi was designed with not just one application in mind, but a variety of them. While it does function as a vital sign monitor for traditional patient monitoring applications, it can also be used for several other applications. You can use it with a Raspberry Pi using a display; use it with a Raspberry Pi with the official touchscreen using our “Complete Kit,” or you can use it standalone by connecting it to any computer’s USB port. The software is compatible across all platforms.
 
-### Getting started with a HealthyPi Complete Kit
+## Getting started with a HealthyPi Complete Kit
 
 If you have purchased the "HealthyPi Complete Kit", then it would already come with a Raspberry Pi and microSD storage with all the HealthyPi software pre-loaded and configured on it. Just plug it in and it should work.
 
@@ -24,7 +24,7 @@ You would still need to assemble the display enclosure and the display stand for
 
 !<video>
 
-### Getting started with HealthyPi on Raspberry Pi
+## Getting started with HealthyPi on Raspberry Pi
 
 If you have a Raspberry Pi setup already available, just follow the following steps on your Raspberry Pi. You will need a monitor and a keyboard/mouse and the Raspberry Pi should be running Raspbian before proceeding with HealthyPi installation. To find out how to install Raspbian check out this great tutorial on Raspberry Pi's official site.
 
@@ -75,7 +75,7 @@ Simply download the appropriate file for your operating system, unzip the conten
 
 # Connecting the sensors
 
-### Connecting the ECG/Respiration Electrodes
+## Connecting the ECG/Respiration Electrodes
 
 A 3-electrode cable along with a standard stereo jack is provided along with the shield to connect the electrodes to the  board.
 The other side of the electrode connector would connect to snap-on electrodes attached to the body. For testing purposes, you can use an ECG simulator to provide inputs to the board.
@@ -89,7 +89,7 @@ Place the electrodes on the body in these positions to get the best signal. Howe
 
 ![Wearing the Electrode](images/connecting electrodes.png)
 
-### Connecting the Pulse Oximetry Probe
+## Connecting the Pulse Oximetry Probe
 
 [Pulse oximetry] is an optical method of non-invasively measuring the oxygen content in the blood. This is achieved with the help of a finger-clip probe that contains some LEDs on one side of the clip and a photo-detector on the other side.
 
@@ -99,7 +99,7 @@ To start measuring, simply plug-in the provided SpO2 finger-clip probe to the DB
 
 [Photo of plugging in the DB9 connector]
 
-### Connecting the temperature sensor
+## Connecting the temperature sensor
 
 A digital human body temperature sensor based on the MAX30205 from Maxim Integrated is provided. This sensor provides direct, calibrated temperature values over a digital I2C interface. This comes pre-connected with the HealthyPi through a simple screw-terminal based connector and a cable for maximum flexibility.
 
@@ -119,13 +119,13 @@ If you wish to program your own code on the HealthyPi board, check out [Modifyin
 
 This product is open source! Both, our hardware and software are open source and licensed under the following licenses:
 
-### Hardware
+## Hardware
 
 All hardware is released under [Creative Commons Share-alike 4.0 International](http://creativecommons.org/licenses/by-sa/4.0/).
 
 ![CC-BY-SA-4.0](https://i.creativecommons.org/l/by-sa/4.0/88x31.png)
 
-### Software
+## Software
 
 All software is released under the MIT License(http://opensource.org/licenses/MIT).
 
