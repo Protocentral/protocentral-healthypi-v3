@@ -1,6 +1,6 @@
 # ProtoCentral HealthyPi v3 HAT for Raspberry Pi
 
-![Healthy Pi Hat](images/healthypi-hat.jpg)
+![Healthy Pi Hat](images/hpi-3-top.jpg)
 
 This HAT for Raspberry Pi 3 / 2 includes vital patient monitoring including ECG, respiration, pulse oximetry and features options to add blood pressure and body temperature sensing.
 
