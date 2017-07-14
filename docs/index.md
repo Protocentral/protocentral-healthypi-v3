@@ -43,7 +43,7 @@ This code will install all the required overlays, configuration and application 
 
 After the script reboots, you should be able to see the GUI display on the screen
 
-![GUI in Processing](images/hpi3-tcp-screen.png)
+![GUI in Processing](images/hpi3-tcp-screen.gif)
 
 ###This completes the install!
 
