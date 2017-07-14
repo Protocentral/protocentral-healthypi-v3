@@ -43,7 +43,7 @@ This code will install all the required overlays, configuration and application 
 
 After the script reboots, you should be able to see the GUI display on the screen
 
-![GUI in Processing](docs/images/healthypi-screen.png)
+![GUI in Processing](images/hpi3-tcp-screen.png)
 
 ###This completes the install!
 
@@ -92,7 +92,7 @@ Connecting the ECG Electrodes
 
 Placing the Electrodes on the body
 ---------------------------------
-![Wearing the Electrode](docs/images/connecting electrodes.png)
+![Wearing the Electrode](images/connecting electrodes.png)
 
 
 License Information
