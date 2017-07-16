@@ -22,7 +22,7 @@ If you have purchased the "HealthyPi Complete Kit", then it would already come w
 
 You would still need to assemble the display enclosure and the display stand for the provided [SmartiPi Touch Case](https://smarticase.com/collections/all/products/smartipi-touch). The SmartiPi Touch that comes included with the HealthyPi kit is already partly assembled. Check out the below video for instructions on how to assemble the kit.
 
-!<video>
+<iframe src="https://player.vimeo.com/video/225754981" width="640" height="360" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
 
 ## Getting started with HealthyPi on Raspberry Pi
 
