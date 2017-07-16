@@ -80,7 +80,7 @@ Simply download the appropriate file for your operating system, unzip the conten
 A 3-electrode cable along with a standard stereo jack is provided along with the shield to connect the electrodes to the  board.
 The other side of the electrode connector would connect to snap-on electrodes attached to the body. For testing purposes, you can use an ECG simulator to provide inputs to the board.
 
-[Photo of plugging in the ECG connector]
+![Open the terminal](images/hpi3-connect-ecg.jpg)
 
 **Important Warning:**
 When connecting the electrodes to the body, it is safer to disconnect the mains power source to the Arduino. For example, if  you are using the Arduino along with a laptop, disconnecting the battery charger from the laptop would be a safe option.
@@ -103,13 +103,13 @@ To start measuring, simply plug-in the provided SpO2 finger-clip probe to the DB
 
 A digital human body temperature sensor based on the MAX30205 from Maxim Integrated is provided. This sensor provides direct, calibrated temperature values over a digital I2C interface. This comes pre-connected with the HealthyPi through a simple screw-terminal based connector and a cable for maximum flexibility.
 
-[Photo of temperature sensor connector]
+![Temperature sensor](images/hpi3-temperature.jpg)
 
 If you ever remove the sensor and wish to connect it back to the HealthyPi, please wire it in the sequence shown in the following picture.
 
 [Photo of temperature sensor connector with color codes]
 
-# Advanced Programming the on-board SAMD21 microcontroller
+# Advanced: Programming the on-board SAMD21 microcontroller
 
 HealthyPi now supports programming using Arduino !
 
