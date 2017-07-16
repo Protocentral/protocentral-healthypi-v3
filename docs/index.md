@@ -22,8 +22,6 @@ If you have purchased the "HealthyPi Complete Kit", then it would already come w
 
 You would still need to assemble the display enclosure and the display stand for the provided [SmartiPi Touch Case](https://smarticase.com/collections/all/products/smartipi-touch). The SmartiPi Touch that comes included with the HealthyPi kit is already partly assembled. Check out the below video for instructions on how to assemble the kit.
 
-<iframe src="https://player.vimeo.com/video/225754981" width="640" height="360" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
-
 ## Getting started with HealthyPi on Raspberry Pi
 
 If you have a Raspberry Pi setup already available, just follow the following steps on your Raspberry Pi. You will need a monitor and a keyboard/mouse and the Raspberry Pi should be running Raspbian before proceeding with HealthyPi installation. To find out how to install Raspbian check out this great tutorial on Raspberry Pi's official site.
@@ -50,6 +48,8 @@ If the above script does not work for you and would like to do a manual installa
 ## Getting started with the HealthyPi GUI on Windows, MacOS and Linux
 
 The HealthyPi board now streams the same data on the on-board USB port. This allows you to get the same data that goes to the Raspberry Pi, now on your desktop PC as well.
+
+<iframe src="https://player.vimeo.com/video/225754981" width="640" height="360" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
 
 *Java 8 is required on all platforms for running the processing-based GUI application. You can download Java for your platform from the following link.*
 
