@@ -16,11 +16,13 @@ Repository Contents
 
 The HealthyPi was designed with not just one application in mind, but a variety of them. While it does function as a vital sign monitor for traditional patient monitoring applications, it can also be used for several other applications. You can use it with a Raspberry Pi using a display; use it with a Raspberry Pi with the official touchscreen using our “Complete Kit,” or you can use it standalone by connecting it to any computer’s USB port. The software is compatible across all platforms.
 
-## Getting started with a HealthyPi Complete Kit
+## Getting started with the HealthyPi Complete Kit
 
 If you have purchased the "HealthyPi Complete Kit", then it would already come with a Raspberry Pi and microSD storage with all the HealthyPi software pre-loaded and configured on it. Just plug it in and it should work.
 
 You would still need to assemble the display enclosure and the display stand for the provided [SmartiPi Touch Case](https://smarticase.com/collections/all/products/smartipi-touch). The SmartiPi Touch that comes included with the HealthyPi kit is already partly assembled. Check out the below video for instructions on how to assemble the kit.
+
+<iframe src="https://player.vimeo.com/video/225759990" width="640" height="360" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
 
 ## Getting started with HealthyPi on Raspberry Pi
 
