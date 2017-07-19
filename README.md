@@ -5,6 +5,7 @@
 HealthyPi is the first fully open-source, full-featured vital sign monitor. Using the Raspberry Pi as its computing and display platform, the HealthyPi add-on HAT turns the Raspberry Pi into a vital sign monitoring system.
 
 If you don't already have one, you can buy [HealthyPi at Crowd Supply](https://www.crowdsupply.com/protocentral/healthypi-v3).
+
 Repository Contents
 -------------------
 * **/firmware** - Atmel studio  and aduino example sketches.
@@ -38,7 +39,7 @@ After the script reboots, you should be able to see the GUI display on the scree
 
 ![GUI in Processing](docs/images/hpi3-screen.jpg)
 
-###This completes the install!
+### This completes the install!
 
 If the above script does not work for you and would like to do a manual installation or would like to customize the code, check out [Advanced HealthyPi] (/docs/advanced-healthypi.md).
 
@@ -64,20 +65,7 @@ Download the zip file containing the executable files from the releases section 
 
 Simply download the appropriate file for your operating system, unzip the contents and run the executable program contained in it.
 
-##For more documentation, please go to [http://healthypi.protocentral.com](http://healthypi.protocentral.com)
-
-Connecting the ECG Electrodes
-------------------------------
- A 3-electrode cable along with a standard stereo jack is provided along with the shield to connect the electrodes to the  board.
- The other side of the electrode connector would connect to snap-on electrodes attached to the body. For testing purposes,    you can use an ECG simulator to provide inputs to the board.
-
- Warning:
- When connecting the electodes to the body, it is safer to disconnect the mains power source to the Arduino. For example, if  you are using the Arduino along with a laptop, disconnecting the battery charger from the laptop would be a safe option.
-
-Placing the Electrodes on the body
----------------------------------
-![Wearing the Electrode](docs/images/connecting electrodes.png)
-
+## For more documentation, videos and tutorials, please go to [http://healthypi.protocentral.com](http://healthypi.protocentral.com)
 
 License Information
 ===================
