@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////////////////
 //
-//   Raspberry Pi/ Desktop GUI for controlling the HealthyPi HAT v3
+//   Desktop GUI for controlling the HealthyPi HAT [ Patient Monitoring System]
 //
 //   Copyright (c) 2016 ProtoCentral
 //   
@@ -11,6 +11,9 @@
 //   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
 //   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
 //   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//   Requires g4p_control graphing library for processing.  Built on V4.1
+//   Downloaded from Processing IDE Sketch->Import Library->Add Library->G4P Install
 //
 /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -32,11 +35,12 @@ import java.io.BufferedWriter;
 import java.util.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import processing.net.*;
 
 // General Java Package
 import java.math.*;
 import controlP5.*;
-//import http.requests.*;
+import http.requests.*;
 
 ControlP5 cp5;
 
@@ -45,6 +49,9 @@ Textlabel lblSPO2;
 Textlabel lblRR;
 Textlabel lblBP;
 Textlabel lblTemp;
+Textlabel lblstatus;
+
+Client myClient; 
 
 
 /************** Packet Validation  **********************/
@@ -92,6 +99,9 @@ float[] spo2Array_RED = new float[pSize];
 float[] rpmArray = new float[pSize];
 float[] ppgArray = new float[pSize];
 
+/************** User Defined Class Objects **********************/
+
+
 /************** Graph Related Variables **********************/
 
 double maxe, mine, maxr, minr, maxs, mins;             // To Calculate the Minimum and Maximum of the Buffer
@@ -125,6 +135,7 @@ String[] comList;                                       // Buffer that holds the
 char inString = '\0';                                   // To receive the bytes from the packet
 String selectedPort;                                    // Holds the selected port number
 
+String dispPlatform;
 /************** Logo Related Variables **********************/
 
 PImage logo;
@@ -136,22 +147,76 @@ int totalPlotsWidth=0;
 int heightHeader=50;
 int updateCounter=0;
 
-boolean is_raspberrypi=false;
+boolean is_raspberrypi=true;
+
+long  thingSpeakPostTime = 0;
+import mqtt.*;
 
 int global_hr;
 int global_rr;
 float global_temp;
 int global_spo2;
 
+MQTTClient client;
+
 int global_test=0;
 
-boolean ECG_leadOff,spo2_leadOff;
-boolean ShowWarning = true;
-boolean ShowWaringSpo2=true;
+void updateMQTT()
+{
+   if(millis() > thingSpeakPostTime)
+   {
+      /*
+        // Prepare a JSON payload string
+      String payload = "{";
+      //payload += "\"heartrate\":\"" +global_hr+ "\",\"rr\":\"" + global_rr +"\"";
+      payload += "heartrate:" +global_hr+ ",rr:" + global_rr +"";
+      
+      //payload += ",\"spo2\":\"" +global_spo2+ "\",\"temperature\":\"" + global_temp +"\"";
+
+      payload += "}";
+    
+      client.publish( "v1/devices/me/telemetry", payload );
+      //client.publish( "akw/feeds/healthypi-hr", ""+ global_test +"");//payload );//"test");// 
+      println(payload);
+      global_test++;
+      thingSpeakPostTime = millis()+ 5000;
+      */
+      /*
+      PostRequest post = new PostRequest("https://groker.initialstate.com/api/events?accessKey=hEAEGKCJXAfxoqoeuh7DaumZuyZvOPlJ&bucketKey=VLFRQWYQEVF5");
+      post.addData("heartrate", str(global_hr) );
+      post.addData("rr", str(global_rr));
+      post.addData("spo2", str(global_spo2));
+      post.addData("temperature", str(global_temp));
+      
+      post.send();
+      //System.out.println("Reponse Content: " + post.getContent());
+      //System.out.println("Reponse Content-Length Header: " + post.getHeader("Content-Length"));
+
+      thingSpeakPostTime = millis()+ 5000;    
+      */
+   }
+}   
+
+void initMQTT()
+{
+    client = new MQTTClient(this);
+    client.connect("mqtt://pcEuAxu7ZQ6wMFevblhh@ec2-54-255-214-27.ap-southeast-1.compute.amazonaws.com/", "healthypi3");
+    //client.connect("mqtt://akw:4746bf5b83de4d5db4e4c03ad8b304cd@io.adafruit.com", "");
+    
+    client.subscribe("akw/feeds/healthypi");
+}
 
 public void setup() 
 {
+  
+  dispPlatform = System.getProperty("os.name") + " " + System.getProperty("os.arch");
   println(System.getProperty("os.name"));
+  
+  if(System.getProperty("os.arch")=="arm")
+  {
+    is_raspberrypi=true;
+  }
+  
   println(System.getProperty("os.arch"));
   
   GPointsArray pointsPPG = new GPointsArray(nPoints1);
@@ -207,7 +272,6 @@ public void setup()
   plotPPG.setPoints(pointsPPG);
   plotResp.setPoints(pointsPPG);
 
-
   /*******  Initializing zero for buffer ****************/
 
   for (int i=0; i<pSize; i++) 
@@ -220,16 +284,19 @@ public void setup()
   }
   time = 0;
   
-  delay(2000);
-  if(System.getProperty("os.arch").contains("arm"))
+  if(true==is_raspberrypi)
   {
-    startSerial("/dev/ttyAMA0");
+    //startSerial();
   }
+  
+  startPlot = true;
+  //initMQTT();
 }
 
 public void makeGUI()
-{  
-   cp5 = new ControlP5(this);
+{
+    cp5 = new ControlP5(this);
+   
    cp5.addButton("Close")
      .setValue(0)
      .setPosition(110,height-heightHeader)
@@ -245,7 +312,42 @@ public void makeGUI()
       }
      } 
      );
-  
+     
+      cp5.addTextfield("devicename")
+     .setPosition(215,height-heightHeader)
+     .setSize(200,20)
+     .setFont(createFont("Impact",15))
+     .setAutoClear(false)
+     .setText("healthypi.local")
+     ;
+     
+      cp5.addButton("Connect")
+     .setValue(0)
+     .setPosition(420,height-heightHeader)
+     .setSize(100,40)
+     .setFont(createFont("Impact",15))
+     .addCallback(new CallbackListener() {
+      public void controlEvent(CallbackEvent event) {
+        if (event.getAction() == ControlP5.ACTION_RELEASED) 
+        {
+            openConnect();
+        }
+      }
+     } 
+     );
+     
+     lblstatus = cp5.addTextlabel("lblstatus")
+      .setText("Status: Not Connected")
+      .setPosition((width/3)+100,height-60)
+      .setColorValue(color(255,255,255))
+      .setFont(createFont("Verdana",16));
+
+     cp5.addTextlabel("lblplatform")
+      .setText("Client Platform: "+ dispPlatform)
+      .setPosition((width/3)+100,height-30)
+      .setColorValue(color(255,255,255))
+      .setFont(createFont("Verdana",14));
+
    cp5.addButton("Record")
      .setValue(0)
      .setPosition(5,height-heightHeader)
@@ -264,119 +366,60 @@ public void makeGUI()
     
   //List l = Arrays.asList("a", "b", "c", "d", "e", "f", "g", "h");
   /* add a ScrollableList, by default it behaves like a DropdownList */
-  
-  if(!System.getProperty("os.arch").contains("arm"))
-  {
-      //List portList = port.list();
-      
-      cp5.addScrollableList("Select Serial port")
-         .setPosition(300, 5)
-         .setSize(300, 100)
-         .setFont(createFont("Impact",15))
-         .setBarHeight(50)
-         .setItemHeight(40)
-         .addItems(port.list())
-         .setType(ScrollableList.DROPDOWN) // currently supported DROPDOWN and LIST
-         .addCallback(new CallbackListener() 
-         {
-            public void controlEvent(CallbackEvent event) 
-            {
-              if (event.getAction() == ControlP5.ACTION_RELEASED) 
-              {
-                startSerial(event.getController().getLabel());
-              }
-            }
-         } 
-       );     
-    }
-  
-    if(width<=900)
-    {
-       lblHR = cp5.addTextlabel("lblHR")
-          .setText("Heartrate: --- bpm")
-          .setPosition(width-350,5)
-          .setColorValue(color(255,255,255))
-          .setFont(createFont("Impact",20));
-    }
-    else
-    {
-         lblHR = cp5.addTextlabel("lblHR")
-          .setText("Heartrate: --- bpm")
-          .setPosition(width-550,5)
-          .setColorValue(color(255,255,255))
-          .setFont(createFont("Impact",40));
-    }
-    if(width<=800)
-    {
-        lblSPO2 = cp5.addTextlabel("lblSPO2")
-        .setText("SpO2: --- %")
-        .setPosition(width-300,(totalPlotsHeight/3+10))
-        .setColorValue(color(255,255,255))
-        .setFont(createFont("Impact",20));
-    }
-    else
-    {
-        lblSPO2 = cp5.addTextlabel("lblSPO2")
-        .setText("SpO2: --- %")
-        .setPosition(width-550,(totalPlotsHeight/3+10))
-        .setColorValue(color(255,255,255))
-        .setFont(createFont("Impact",40));
-    }
-    if(width<=800)
-    {
-      lblRR = cp5.addTextlabel("lblRR")
-      .setText("Respiration: --- bpm")
-      .setPosition(width-350,(totalPlotsHeight/3+totalPlotsHeight/3+10))
-      .setColorValue(color(255,255,255))
-      .setFont(createFont("Impact",20));
-    }
-    else
-    {
-      lblRR = cp5.addTextlabel("lblRR")
-      .setText("Respiration: --- bpm")
-      .setPosition(width-550,(totalPlotsHeight/3+totalPlotsHeight/3+10))
+  /*
+  cp5.addScrollableList("dropdownPorts")
+     .setPosition(100, 100)
+     .setSize(200, 100)
+     .setBarHeight(20)
+     .setItemHeight(20)
+     .addItems(port.list())
+     .setType(ScrollableList.DROPDOWN) // currently supported DROPDOWN and LIST
+     ;
+    */ 
+    
+   lblHR = cp5.addTextlabel("lblHR")
+      .setText("Heartrate: --- bpm")
+      .setPosition(width-350,5)
       .setColorValue(color(255,255,255))
       .setFont(createFont("Impact",40));
-    }
-    
+      
+    lblSPO2 = cp5.addTextlabel("lblSPO2")
+    .setText("SpO2: 95 %")
+    .setPosition(width-350,(totalPlotsHeight/3+10))
+    .setColorValue(color(255,255,255))
+    .setFont(createFont("Impact",40));
 
-    if(width<=800)
-    {
-      lblTemp = cp5.addTextlabel("lblTemp")
-      .setText("Temperature: --- C")
-      .setPosition((width/3)*2-45,height-50)
+    lblRR = cp5.addTextlabel("lblRR")
+    .setText("Respiration: --- bpm")
+    .setPosition(width-350,(totalPlotsHeight/3+totalPlotsHeight/3+10))
+    .setColorValue(color(255,255,255))
+    .setFont(createFont("Impact",40));
+   
+    /*
+    lblBP = cp5.addTextlabel("lblBP")
+      .setText("BP: --- / ---")
+      .setPosition((width-250),height-25)
       .setColorValue(color(255,255,255))
-      .setFont(createFont("Verdana",25));
-    }
-    else 
-    {
-      lblTemp = cp5.addTextlabel("lblTemp")
-
-      .setText("Temperature: --- C")
-      .setPosition((width/3)*2,height-60)
+      .setFont(createFont("Verdana",20));
+    */
+    
+    lblTemp = cp5.addTextlabel("lblTemp")
+      .setText("Temperature: --- \u00B0 C")
+      .setPosition((width/3)*2,height-70)
       .setColorValue(color(255,255,255))
       .setFont(createFont("Verdana",40));
-    }
-    
+      
      cp5.addButton("logo")
      .setPosition(5,5)
      .setImages(loadImage("protocentral.png"), loadImage("protocentral.png"), loadImage("protocentral.png"))
      .updateSize();
-          
-    if(height<=480) //condition for Raspberry Pi 7" display
-    {  
-        lblHR.setFont(createFont("Arial",20));
-        lblHR.setPosition(width-200,5);      
-        
-        lblSPO2.setFont(createFont("Arial",20));
-        lblSPO2.setPosition(width-200,(totalPlotsHeight/3+10));
-      
-        lblTemp.setPosition((width/3)*2,height-60)
-        .setFont(createFont("Verdana",20));
-        
-        lblRR.setPosition(width-200,(totalPlotsHeight/3+totalPlotsHeight/3+10))
-        .setFont(createFont("Impact",20));
-    }
+}
+
+public void openConnect()
+{
+    myClient = new Client(this,cp5.get(Textfield.class,"devicename").getText(), 7777);   //heartypatch.local
+    lblstatus.setText("Status: Connected to " + cp5.get(Textfield.class,"devicename").getText());
+    startPlot = true;
 }
 
 public void draw() 
@@ -418,6 +461,8 @@ public void draw()
   plotResp.drawBackground();
   plotResp.drawLines();
   plotResp.endDraw();
+
+  //updateMQTT();
 }
 
 public void CloseApp() 
@@ -467,13 +512,13 @@ public void RecordData()
     println("File Not Found");
   }
 }
-void startSerial(String startPortName)
+void startSerial()
 {
   try
   {
-      port = new Serial(this,startPortName, 115200);
-      port.clear();
-      startPlot = true;
+    port = new Serial(this, "/dev/cu.usbmodem1441", 115200);
+    port.clear();
+    startPlot = true;
   }
   catch(Exception e)
   {
@@ -483,10 +528,23 @@ void startSerial(String startPortName)
   }
 }
 
+///////////////////////////////////////////////////////////////////
+//
+//  Event Handler To Read the packets received from the Device
+//
+//////////////////////////////////////////////////////////////////
+
 void serialEvent (Serial blePort) 
 {
   inString = blePort.readChar();
   ecsProcessData(inString);
+}
+
+void clientEvent(Client someClient) 
+{
+  inString = myClient.readChar();
+  ecsProcessData(inString);
+  //println(inString);
 }
 
 void ecsProcessData(char rxch)
@@ -532,58 +590,48 @@ void ecsProcessData(char rxch)
     {
       if (rxch==CES_CMDIF_PKT_STOP)
       {     
+        // The Buffer is splitted and assigned separatly in different buffer
+        // First 4 bytes for ECG
+        // Next 4 bytes for REspiration
+        // Next 8 bytes for SpO2/PPG
+
         CES_Pkt_ECG_Counter[0] = CES_Pkt_Data_Counter[0];
         CES_Pkt_ECG_Counter[1] = CES_Pkt_Data_Counter[1];
+        CES_Pkt_ECG_Counter[2] = CES_Pkt_Data_Counter[2];
+        CES_Pkt_ECG_Counter[3] = CES_Pkt_Data_Counter[3];
 
+        CES_Pkt_Resp_Counter[0] = CES_Pkt_Data_Counter[4];
+        CES_Pkt_Resp_Counter[1] = CES_Pkt_Data_Counter[5];
+        CES_Pkt_Resp_Counter[2] = CES_Pkt_Data_Counter[6];
+        CES_Pkt_Resp_Counter[3] = CES_Pkt_Data_Counter[7];
 
-        CES_Pkt_Resp_Counter[0] = CES_Pkt_Data_Counter[2];
-        CES_Pkt_Resp_Counter[1] = CES_Pkt_Data_Counter[3];
+        CES_Pkt_SpO2_Counter_IR[0] = CES_Pkt_Data_Counter[8];
+        CES_Pkt_SpO2_Counter_IR[1] = CES_Pkt_Data_Counter[9];
+        CES_Pkt_SpO2_Counter_IR[2] = CES_Pkt_Data_Counter[10];
+        CES_Pkt_SpO2_Counter_IR[3] = CES_Pkt_Data_Counter[11];
 
-        CES_Pkt_SpO2_Counter_IR[0] = CES_Pkt_Data_Counter[4];
-        CES_Pkt_SpO2_Counter_IR[1] = CES_Pkt_Data_Counter[5];
-        CES_Pkt_SpO2_Counter_IR[2] = CES_Pkt_Data_Counter[6];
-        CES_Pkt_SpO2_Counter_IR[3] = CES_Pkt_Data_Counter[7];
+        CES_Pkt_SpO2_Counter_RED[0] = CES_Pkt_Data_Counter[12];
+        CES_Pkt_SpO2_Counter_RED[1] = CES_Pkt_Data_Counter[13];
+        CES_Pkt_SpO2_Counter_RED[2] = CES_Pkt_Data_Counter[14];
+        CES_Pkt_SpO2_Counter_RED[3] = CES_Pkt_Data_Counter[15];
 
-        CES_Pkt_SpO2_Counter_RED[0] = CES_Pkt_Data_Counter[8];
-        CES_Pkt_SpO2_Counter_RED[1] = CES_Pkt_Data_Counter[9];
-        CES_Pkt_SpO2_Counter_RED[2] = CES_Pkt_Data_Counter[10];
-        CES_Pkt_SpO2_Counter_RED[3] = CES_Pkt_Data_Counter[11];
-
-        float Temp_Value = (float) ((int) CES_Pkt_Data_Counter[12]| CES_Pkt_Data_Counter[13]<<8)/100;                // Temperature
+        float Temp_Value = (float) ((int) CES_Pkt_Data_Counter[16]| CES_Pkt_Data_Counter[17]<<8)/100;                // Temperature
         // BP Value Systolic and Diastolic
-        
-        int global_RespirationRate = (int) (CES_Pkt_Data_Counter[14]);
-         int global_spo2= (int) (CES_Pkt_Data_Counter[15]);
-         int global_HeartRate = (int) (CES_Pkt_Data_Counter[16]);
-         
-        int BP_Value_Sys = (int) CES_Pkt_Data_Counter[17];
-        int BP_Value_Dia = (int) CES_Pkt_Data_Counter[18];
-        
-        int leadstatus =  CES_Pkt_Data_Counter[19];
-        leadstatus &= 0x01; 
-        if(leadstatus== 0x01) ECG_leadOff = true;  
-        else ECG_leadOff = false;
-        
-         leadstatus =  CES_Pkt_Data_Counter[19];
-        leadstatus &= 0x02; 
-        if(leadstatus == 0x02) spo2_leadOff = true;
-        else spo2_leadOff = false;
-        
+        int global_RespirationRate = (int) (CES_Pkt_Data_Counter[18]);
+        int global_HeartRate = (int) (CES_Pkt_Data_Counter[20]);
+        //int BP_Value_Sys = (int) CES_Pkt_Data_Counter[17];
+        //int BP_Value_Dia = (int) CES_Pkt_Data_Counter[18];
 
-        int data1 = CES_Pkt_ECG_Counter[0] | CES_Pkt_ECG_Counter[1]<<8; //reversePacket(CES_Pkt_ECG_Counter, CES_Pkt_ECG_Counter.length-1);
-        data1 <<= 16;
-        data1 >>= 16;
+        int data1 = ecsParsePacket(CES_Pkt_ECG_Counter, CES_Pkt_ECG_Counter.length-1);
         ecg = (double) data1/(Math.pow(10, 3));
 
-        int data2 = CES_Pkt_Resp_Counter[0] | CES_Pkt_Resp_Counter[1] <<8; //reversePacket(CES_Pkt_ECG_Counter, CES_Pkt_ECG_Counter.length-1);
-        data2 <<= 16;
-        data2 >>= 16;
+        int data2 = ecsParsePacket(CES_Pkt_Resp_Counter, CES_Pkt_Resp_Counter.length-1);
         resp = (double) data2/(Math.pow(10, 3));
 
-        int data3 = reversePacket(CES_Pkt_SpO2_Counter_IR, CES_Pkt_SpO2_Counter_IR.length-1);
+        int data3 = ecsParsePacket(CES_Pkt_SpO2_Counter_IR, CES_Pkt_SpO2_Counter_IR.length-1);
         spo2_ir = (double) data3;
 
-        int data4 = reversePacket(CES_Pkt_SpO2_Counter_RED, CES_Pkt_SpO2_Counter_RED.length-1);
+        int data4 = ecsParsePacket(CES_Pkt_SpO2_Counter_RED, CES_Pkt_SpO2_Counter_RED.length-1);
         spo2_red = (double) data4;
 
         ecg_avg[arrayIndex] = (float)ecg;
@@ -600,69 +648,29 @@ void ecsProcessData(char rxch)
         resAvg =  averageValue(resp_avg);
         resp = (resp_avg[arrayIndex] - resAvg);
 
+        // Assigning the values for the graph buffers
+
         time = time+1;
         xdata[arrayIndex] = time;
 
         ecgdata[arrayIndex] = (float)ecg;
         respdata[arrayIndex]= (float)resp;
         spo2data[arrayIndex] = (float)spo2;
-        bpmArray[arrayIndex] = (float)ecg;
-        rpmArray[arrayIndex] = (float)resp;
-        ppgArray[arrayIndex] = (float)spo2;
 
-        if(ECG_leadOff == true)
-        {
-           if(ShowWarning == true)
-           {
-             lblHR.setColorValue(color(255,0,0));
-             lblRR.setColorValue(color(255,0,0));
-             lblHR.setText("LEAD ERROR");
-             lblRR.setText("LEAD ERROR");
-             ShowWarning = false;
-           }
-        }
-        else 
-        {
-          if(ShowWarning == false)
-          {
-             lblHR.setColorValue(color(255,255,255));
-             lblRR.setColorValue(color(255,255,255));
-             ShowWarning = true;
-          }
-          lblRR.setText("Respiration: " + global_RespirationRate+ " rpm");
-          lblHR.setText("Heart Rate: " + global_HeartRate + " bpm");          
-        }
-        
-        if(spo2_leadOff == true)
-        {
-          if(ShowWaringSpo2 == true)
-           {
-             lblSPO2.setColorValue(color(255,0,0));
-             lblSPO2.setText("SpO2 Probe Error");
-             ShowWaringSpo2 = false;
-           }
-        }
-        else 
-        {
-           if(ShowWaringSpo2 == false)
-            {
-               lblSPO2.setColorValue(color(255,255,255));
-               ShowWaringSpo2 = true;
-            }
-           lblSPO2.setText("SpO2: " + global_spo2 + "%");
-        }
-        
-
+        lblRR.setText("Respiration: " + global_RespirationRate+ " rpm");
+        lblHR.setText("Heart Rate: " + global_HeartRate + " bpm");
         
         arrayIndex++;
         updateCounter++;
 
+ 
         if(updateCounter==100)
         {
           if (startPlot)
           {
+
             global_temp=Temp_Value;
-            lblTemp.setText("Temperature: "+Temp_Value+" C");
+            lblTemp.setText("Temperature: "+Temp_Value+"\u00B0 C");
             
           }
           updateCounter=0;
@@ -678,15 +686,13 @@ void ecsProcessData(char rxch)
 
         if (logging == true)
         {
-          try 
-          {
+          try {
             date = new Date();
             dateFormat = new SimpleDateFormat("HH:mm:ss");
             bufferedWriter.write(dateFormat.format(date)+","+ecg+","+spo2+","+resp);
             bufferedWriter.newLine();
           }
-          catch(IOException e) 
-          {
+          catch(IOException e) {
             println("It broke!!!");
             e.printStackTrace();
           }
@@ -706,15 +712,16 @@ void ecsProcessData(char rxch)
 
 /*********************************************** Recursive Function To Reverse The data *********************************************************/
 
-public int reversePacket(char DataRcvPacket[], int n)
+public int ecsParsePacket(char DataRcvPacket[], int n)
 {
   if (n == 0)
     return (int) DataRcvPacket[n]<<(n*8);
   else
-    return (DataRcvPacket[n]<<(n*8))| reversePacket(DataRcvPacket, n-1);
+    return (DataRcvPacket[n]<<(n*8))| ecsParsePacket(DataRcvPacket, n-1);
 }
 
 /*************** Function to Calculate Average *********************/
+
 double averageValue(float dataArray[])
 {
 
