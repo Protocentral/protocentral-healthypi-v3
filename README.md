@@ -17,6 +17,8 @@ Repository Contents
 Getting Started (On Raspberry Pi):
 ----------------------------------
 
+### For getting started videos and tutorials, please go to [http://healthypi.protocentral.com](http://healthypi.protocentral.com)
+
 Mount ProtoCentral's HealthyPi-v3 HAT carefully onto the Raspberry Pi Board's GPIO Pins. Connect this setup with the Raspberry Pi's Display or a HDMI Monitor. The HAT communicates with Raspberry Pi using UART interface on the GPIO pin header. Connect the ECG electrodes and SPO2 Probe to the ProtoCentral's Healthy PI Hat.
 
 It's now easy to get started with our brand-new installation script. Just follow the following steps on your Raspberry Pi.
@@ -65,7 +67,7 @@ Download the zip file containing the executable files from the releases section 
 
 Simply download the appropriate file for your operating system, unzip the contents and run the executable program contained in it.
 
-## For more documentation, videos and tutorials, please go to [http://healthypi.protocentral.com](http://healthypi.protocentral.com)
+### For more documentation, videos and tutorials, please go to [http://healthypi.protocentral.com](http://healthypi.protocentral.com)
 
 License Information
 ===================
