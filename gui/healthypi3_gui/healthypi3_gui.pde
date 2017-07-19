@@ -471,7 +471,7 @@ void startSerial(String startPortName)
 {
   try
   {
-      port = new Serial(this,startPortName, 115200);
+      port = new Serial(this,startPortName, 57600);
       port.clear();
       startPlot = true;
   }
