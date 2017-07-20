@@ -75,7 +75,7 @@ MacOS and Linux do not need any drivers to be installed.
 
 Download the zip file containing the executable files from the following links for 32-bit/64-bit Windows. If you do not know if you have a 64-bit or 32-bit computer, try with the 32-bit version.
 
-[Download the latest release here](https://github.com/Protocentral/protocentral-healthypi-v3/releases/tag/v1.0)
+[Download the latest release here](https://github.com/Protocentral/protocentral-healthypi-v3/releases/latest)
 
 Simply download the appropriate file for your operating system, unzip the contents and run the executable program contained in it. On desktop operating systems, you will have to choose the correct port name assigned to the HealthyPi by USB. Simply select the port from the dropdown on the top and port should be opened.
 

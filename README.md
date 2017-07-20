@@ -63,7 +63,7 @@ MacOS and Linux do not need any drivers to be installed.
 
 Download the zip file containing the executable files from the releases section for 32-bit/64-bit Windows. If you do not know if you have a 64-bit or 32-bit computer, please download the 32-bit version.
 
-[Download the latest GUI for HealthyPi](https://github.com/Protocentral/protocentral-healthypi-v3/releases)
+[Download the latest GUI for HealthyPi](https://github.com/Protocentral/protocentral-healthypi-v3/releases/latest)
 
 Simply download the appropriate file for your operating system, unzip the contents and run the executable program contained in it.
 
