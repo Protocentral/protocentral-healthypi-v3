@@ -24,19 +24,28 @@ You would still need to assemble the display enclosure and the display stand for
 
 <iframe src="https://player.vimeo.com/video/225759990" width="640" height="360" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
 
+
 ## Getting started with HealthyPi on Raspberry Pi
 
 If you have a Raspberry Pi setup already available, just follow the following steps on your Raspberry Pi. You will need a monitor and a keyboard/mouse and the Raspberry Pi should be running Raspbian before proceeding with HealthyPi installation. To find out how to install Raspbian check out this great tutorial on Raspberry Pi's official site.
 
-To start, open up the terminal window (Menu -> Accessories -> Terminal) on Raspbian running on your Raspberry Pi:
+The following video shows you how to connect the HealthyPi to a Raspberry Pi.
+
+<iframe src="https://player.vimeo.com/video/226236581" width="640" height="360" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
+
+
+After completing the steps shown in the video, open up the terminal window (Menu -> Accessories -> Terminal) on Raspbian running on your Raspberry Pi:
 
 ![Open the terminal](images/terminal.jpg)
 
 In the terminal window, type the following lines.
 
 ```bash
-curl -sS http://healthypi.protocentral.com/hpi3.sh | sudo bash
+curl -sS http://pi.protocentral.com/hpi3.sh | sudo bash
 ```
+
+Follow the instructions shown carefully, this will download and install all that is required to get the HealthyPi running.
+
 It really is as simple as that. This code will install all the required overlays, configuration and application files to get the Healthy Pi up and running.
 
 After the script reboots your Raspberry Pi, you should be able to see the GUI display the sensor outputs in real-time on the screen.
@@ -45,7 +54,6 @@ After the script reboots your Raspberry Pi, you should be able to see the GUI di
 
 **This completes the install!**
 
-If the above script does not work for you and would like to do a manual installation or would like to customize the code, read on.
 
 ## Getting started with the HealthyPi GUI on Windows, MacOS and Linux
 
@@ -106,12 +114,6 @@ A digital human body temperature sensor based on the MAX30205 from Maxim Integra
 If you ever remove the sensor and wish to connect it back to the HealthyPi, please wire it in the sequence shown in the following picture.
 
 [Photo of temperature sensor connector with color codes]
-
-# Advanced: Programming the on-board SAMD21 microcontroller
-
-HealthyPi now supports programming using Arduino !
-
-If you wish to program your own code on the HealthyPi board, check out [Modifying and recompiling HealthyPi Firmware](/docs/recompiling-firmware.md).
 
 # License Information
 
