@@ -35,7 +35,7 @@ To start, open up the terminal window (Menu -> Accessories -> Terminal) on Raspb
 In the terminal window, type the following lines.
 
 ```bash
-curl -sS http://healthypi.protocentral.com/pi.sh | sudo bash
+curl -sS http://healthypi.protocentral.com/hpi3.sh | sudo bash
 ```
 It really is as simple as that. This code will install all the required overlays, configuration and application files to get the Healthy Pi up and running.
 
@@ -67,11 +67,7 @@ MacOS and Linux do not need any drivers to be installed.
 
 Download the zip file containing the executable files from the following links for 32-bit/64-bit Windows. If you do not know if you have a 64-bit or 32-bit computer, try with the 32-bit version.
 
-* [Windows 32-bit Executable (ZIP)](https://github.com/Protocentral/HealthyPi/releases/download/v0.2/healthypi_gui_win32.zip)
-* [Windows 64-bit Executable (ZIP)](https://github.com/Protocentral/HealthyPi/releases/download/v0.2/healthypi_gui_win64.zip)
-* [MacOS Executable (ZIP)](https://github.com/Protocentral/HealthyPi/releases/download/v0.2/healthypi_gui_macos.zip)
-* [Linux 32-bit Executable (ZIP)](https://github.com/Protocentral/HealthyPi/releases/download/v0.2/healthypi_gui_linux32.zip)
-* [Linux 64-bit Executable (ZIP)](https://github.com/Protocentral/HealthyPi/releases/download/v0.2/healthypi_gui_linux64.zip)
+[Download the latest release here](https://github.com/Protocentral/protocentral-healthypi-v3/releases/tag/v1.0)
 
 Simply download the appropriate file for your operating system, unzip the contents and run the executable program contained in it.
 

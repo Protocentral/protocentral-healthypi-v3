@@ -271,7 +271,7 @@ public void makeGUI()
       
       cp5.addScrollableList("Select Serial port")
          .setPosition(300, 5)
-         .setSize(300, 100)
+         .setSize(300, 400)
          .setFont(createFont("Impact",15))
          .setBarHeight(50)
          .setItemHeight(40)
@@ -478,7 +478,7 @@ void startSerial(String startPortName)
   catch(Exception e)
   {
 
-    showMessageDialog(null, "Port is busy", "Alert", ERROR_MESSAGE);
+    showMessageDialog(null, "Invalid Port or Port is busy", "Alert", ERROR_MESSAGE);
     System.exit (0);
   }
 }
