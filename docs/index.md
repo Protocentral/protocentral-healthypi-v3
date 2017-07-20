@@ -77,7 +77,9 @@ Download the zip file containing the executable files from the following links f
 
 [Download the latest release here](https://github.com/Protocentral/protocentral-healthypi-v3/releases/tag/v1.0)
 
-Simply download the appropriate file for your operating system, unzip the contents and run the executable program contained in it.
+Simply download the appropriate file for your operating system, unzip the contents and run the executable program contained in it. On desktop operating systems, you will have to choose the correct port name assigned to the HealthyPi by USB. Simply select the port from the dropdown on the top and port should be opened.
+
+*Note: On MacOS, if you see an error saying "app is damaged", please follow the steps given in https://support.apple.com/en-us/HT202491 .This is a known issue with Processing on MacOS.*
 
 # Connecting the sensors
 
@@ -114,6 +116,12 @@ A digital human body temperature sensor based on the MAX30205 from Maxim Integra
 If you ever remove the sensor and wish to connect it back to the HealthyPi, please wire it in the sequence shown in the following picture.
 
 [Photo of temperature sensor connector with color codes]
+
+## Frequently Asked Questions
+
+[Coming Soon]
+
+*Please submit an [issue on Github](https://github.com/Protocentral/protocentral-healthypi-v3/issues/new) if you face any problems with the HealthyPi.*
 
 # License Information
 
