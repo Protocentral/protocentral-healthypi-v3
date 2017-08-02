@@ -1,2 +1,9 @@
 theme: jekyll-theme-minimal
 title: Welcome to HealthyPi 3 !
+pages:
+    - Home: index.md
+    - OpenPressure:
+        - Getting Started: openpressure.md
+    - Kalam Starter Kit:
+        - Getting Started - Putting it together: kalam_starterkit.md
+        - Example 1 - Posting data to ThingSpeak: kalam_example_thingspeak.md

@@ -75,7 +75,7 @@ char CES_Pkt_ECG_Counter[] = new char[4];                    // Buffer to hold E
 char CES_Pkt_Resp_Counter[] = new char[4];                   // Respiration Buffer
 char CES_Pkt_SpO2_Counter_RED[] = new char[4];               // Buffer for SpO2 RED
 char CES_Pkt_SpO2_Counter_IR[] = new char[4];                // Buffer for SpO2 IR
-int pSize = 1000;                                            // Total Size of the buffer
+int pSize = 2000;                                            // Total Size of the buffer
 int arrayIndex = 0;                                          // Increment Variable for the buffer
 float time = 0;                                              // X axis increment variable
 
