@@ -75,7 +75,7 @@ char CES_Pkt_ECG_Counter[] = new char[4];                    // Buffer to hold E
 char CES_Pkt_Resp_Counter[] = new char[4];                   // Respiration Buffer
 char CES_Pkt_SpO2_Counter_RED[] = new char[4];               // Buffer for SpO2 RED
 char CES_Pkt_SpO2_Counter_IR[] = new char[4];                // Buffer for SpO2 IR
-int pSize = 2000;                                            // Total Size of the buffer
+int pSize = 1000;                                            // Total Size of the buffer
 int arrayIndex = 0;                                          // Increment Variable for the buffer
 float time = 0;                                              // X axis increment variable
 
@@ -271,7 +271,7 @@ public void makeGUI()
       
       cp5.addScrollableList("Select Serial port")
          .setPosition(300, 5)
-         .setSize(300, 400)
+         .setSize(300, 100)
          .setFont(createFont("Impact",15))
          .setBarHeight(50)
          .setItemHeight(40)
@@ -471,14 +471,14 @@ void startSerial(String startPortName)
 {
   try
   {
-      port = new Serial(this,startPortName, 57600);
+      port = new Serial(this,startPortName, 115200);
       port.clear();
       startPlot = true;
   }
   catch(Exception e)
   {
 
-    showMessageDialog(null, "Invalid Port or Port is busy", "Alert", ERROR_MESSAGE);
+    showMessageDialog(null, "Port is busy", "Alert", ERROR_MESSAGE);
     System.exit (0);
   }
 }

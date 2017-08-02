@@ -66,3 +66,11 @@ application.linux-armv6hf
 *.zip
 *.DS_Store
 .DS_Store
+
+gui/healthypi3_gui/.DS_Store
+
+firmware/.DS_Store
+
+gui/.DS_Store
+
+gui/healthypi3_gui/.DS_Store

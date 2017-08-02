@@ -29,8 +29,9 @@
 #define TEMPERATURE 0
 #define FILTERORDER         161
 /* DC Removal Numerator Coeff*/
-#define NRCOEFF (0.992)
+//#define NRCOEFF (0.992)
 #define WAVE_SIZE  1
+#define NRCOEFF (0.992)
 
 #define IOPORT_PIN_LEVEL_HIGH 1
 #define IOPORT_PIN_LEVEL_LOW 0
@@ -103,6 +104,8 @@ int RESP_Second_Next_Sample = 0 ;
 uint16_t iprocess=0;
 
 int16_t RESP_WorkingBuff[2 * FILTERORDER];
+int16_t Pvev_DC_Sample=0, Pvev_Sample=0;
+int16_t ECG_Pvev_DC_Sample, ECG_Pvev_Sample;
 
 int16_t RespCoeffBuf[FILTERORDER] = 
 {             
@@ -149,13 +152,12 @@ int16_t CoeffBuf_40Hz_LowPass[FILTERORDER] =
       105,   -121,      0,    117,    -99,    -31,    122,    -72
 };
 
-int16_t i16respbuff[WAVE_SIZE];
+volatile int16_t i16respbuff;
 uint16_t resp_buff_indx=0;
-int16_t res_wave_buff[WAVE_SIZE ];
-int16_t resp_filterout[WAVE_SIZE];
+int16_t res_wave_buff;
+int16_t resp_filterout;
 uint8_t    DataPacket[100];
 
-bool resp_algorithm_process=false;
 uint16_t k=0;
 uint8_t i = 0;
 
@@ -200,7 +202,7 @@ int16_t QRS_Threshold_New = 0;
 unsigned int sample_count = 0 ;
 
 uint16_t QRS_Heart_Rate = 0 ;
-int16_t ecg_wave_buff[1],ecg_filterout[1];
+int16_t ecg_wave_buff,ecg_filterout;
 
 volatile uint8_t global_HeartRate=0;
 volatile uint8_t global_RespirationRate=0;
@@ -223,20 +225,18 @@ long time_elapsed =0;
 
 void ads1292_detection_callback(void)
 {
-       digitalWrite(ADS1292R_CS_PIN,LOW);
+    digitalWrite(ADS1292R_CS_PIN,LOW);
 
-     for (int x = 0; x < 9 ; x++)
+    for (int x = 0; x < 9 ; x++)
     {
       SPI_Dummy_Buff[x] = ads1292rSPI.transfer(0xff);
       // SerialUSB.print(SPI_Dummy_Buff[x],HEX); 
     }
-
-     status_byte = (long)((long)SPI_Dummy_Buff[2] | ((long) SPI_Dummy_Buff[1]) <<8 | ((long) SPI_Dummy_Buff[0])<<16);
-//      SerialUSB.println( status_byte);
+    
+    status_byte = (long)((long)SPI_Dummy_Buff[2] | ((long) SPI_Dummy_Buff[1]) <<8 | ((long) SPI_Dummy_Buff[0])<<16);
     status_byte  = (status_byte & 0x0f8000) >> 15;
-//    SerialUSB.println( status_byte);
     LeadStatus = (unsigned char ) status_byte ; 
-//    SerialUSB.println( LeadStatus);
+
     if(!((LeadStatus & 0x1f) == 0 ))
     leadoff_deteted  = TRUE;
     else leadoff_deteted  = FALSE;
@@ -246,24 +246,14 @@ void ads1292_detection_callback(void)
     resultTemp = (unsigned long)(resultTemp << 8);
 
     sresultTemp = (signed long)(resultTemp);
-    //sresultTempECG =  sresultTemp>>8;  
-    ecg_wave_buff[0] = (int16_t)  (sresultTemp>>16);   // store for TI's algorithm
+    ecg_wave_buff = (int16_t)  (sresultTemp>>16);   // store for TI's algorithm
       
     resultTemp = (uint32_t)((0 << 24) | (SPI_Dummy_Buff[3] << 16)| SPI_Dummy_Buff[4] << 8 | SPI_Dummy_Buff[5]);//6,7,8
     resultTemp = (uint32_t)(resultTemp << 8);
 
     sresultTempResp = (long)(resultTemp);
-    sresultTempResp = (int16_t)(sresultTempResp>>8);   
-    i16respbuff[resp_buff_indx++] =  (int16_t)sresultTempResp ;
-
-    if(resp_buff_indx >= WAVE_SIZE ) 
-    {
-      for(k=0;k<WAVE_SIZE;k++)
-      res_wave_buff[k] = i16respbuff[k];
-      resp_algorithm_process  =  true;
-      resp_buff_indx =0;
-      
-    }
+    res_wave_buff = (int16_t)(sresultTempResp>>8) ; 
+    
     ads1292DataReceived = true;
   
 }
@@ -276,6 +266,7 @@ void afe4490_detection_callback(void)
 
 void setup() 
 {   
+    int cnt;
     delay(2000);
     
     SerialUSB.begin(115200);
@@ -289,6 +280,18 @@ void setup()
     delay(500);
     AFE4490Write(CONTROL0,0x000001);
     n_buffer_count=0;
+
+
+    for (cnt =0 ; cnt < FILTERORDER; cnt++)
+    {
+        RESP_WorkingBuff[cnt] = 0;
+        ECG_WorkingBuff[cnt] = 0;
+    }
+
+    Pvev_DC_Sample = 0;
+    Pvev_Sample = 0;
+    ECG_Pvev_DC_Sample = 0;
+    ECG_Pvev_Sample = 0;
 }
 
 int dec=0;
@@ -312,17 +315,20 @@ void loop()
      float temp = getTemperature()*100; // read temperature for every 100ms
      int temperature =  (uint16_t) temp;
        
-      Resp_ProcessCurrSample(&res_wave_buff[0],&resp_filterout[0]);
-      RESP_Algorithm_Interface(resp_filterout[0]);
+      resp_filterout = Resp_ProcessCurrSample(res_wave_buff);
+      //resp_filterout=res_wave_buff;
+      RESP_Algorithm_Interface(resp_filterout);
 
-      ECG_ProcessCurrSample(&ecg_wave_buff[0],&ecg_filterout[0]);
-      QRS_Algorithm_Interface(ecg_filterout[0]);
+      //ecg_filterout=ecg_wave_buff;
+      ecg_filterout = ECG_ProcessCurrSample(ecg_wave_buff);
+      QRS_Algorithm_Interface(ecg_filterout);
        
       DataPacket[0] = 0x0A;  // sync0
       DataPacket[1] = 0xFA;
       DataPacket[2] = (uint8_t) (data_len);
       DataPacket[3] = (uint8_t) (data_len>>8);
       DataPacket[4] = 0x02;
+      
       if(leadoff_deteted == true)
       {
             DataPacket[5] = 0;
@@ -333,11 +339,11 @@ void loop()
       }
       else
       {
-          DataPacket[5] =  ecg_filterout[0];
-          DataPacket[6] =  ecg_filterout[0]>>8;
+          DataPacket[5] =  ecg_filterout;
+          DataPacket[6] =  ecg_filterout>>8;
     
-          DataPacket[7] =  resp_filterout[0];
-          DataPacket[8] =  resp_filterout[0]>>8;   
+          DataPacket[7] =  resp_filterout;
+          DataPacket[8] =  resp_filterout>>8;   
       }
 
       if(1) // if(afe4490DataReceived == true)
@@ -812,55 +818,49 @@ void Resp_FilterProcess(int16_t * RESP_WorkingBuff, int16_t * CoeffBuf, int16_t*
   
 }
 
-void Resp_ProcessCurrSample(int16_t *CurrAqsSample, int16_t *FilteredOut)
+int16_t Resp_ProcessCurrSample(int16_t CurrAqsSample)
 {
-  
     static uint16_t bufStart=0, bufCur = FILTERORDER-1, FirstFlag = 1;
-    static int16_t Pvev_DC_Sample, Pvev_Sample;
-    int16_t temp1, temp2, RESPData;
     
+    int16_t temp1, temp2;//, RESPData;
+
+    int16_t RESPData;
     /* Count variable*/
     uint16_t Cur_Chan;
     int16_t FiltOut;
-  
-    if  ( FirstFlag )
-    {
-      for ( Cur_Chan =0 ; Cur_Chan < FILTERORDER; Cur_Chan++)
-      {
-        RESP_WorkingBuff[Cur_Chan] = 0;
-      }
-  
-      Pvev_DC_Sample = 0;
-      Pvev_Sample = 0;
-      FirstFlag = 0;
-    }
+ 
     temp1 = NRCOEFF * Pvev_DC_Sample;
-    Pvev_DC_Sample = (CurrAqsSample[0]  - Pvev_Sample) + temp1;
-    Pvev_Sample = CurrAqsSample[0];
-    temp2 = Pvev_DC_Sample;//2
+    Pvev_DC_Sample = (CurrAqsSample  - Pvev_Sample) + temp1;
+    Pvev_Sample = CurrAqsSample;
+    temp2 = Pvev_DC_Sample;
     RESPData = (int16_t) temp2;
-  
+    
+    RESPData = CurrAqsSample;
+    
     /* Store the DC removed value in RESP_WorkingBuff buffer in millivolts range*/
+    
+    //RESP_WorkingBuff[bufCur]=(CurrAqsSample[0]);
     RESP_WorkingBuff[bufCur] = RESPData;
+    //FiltOut = RESPData;
     Resp_FilterProcess(&RESP_WorkingBuff[bufCur],RespCoeffBuf,(int16_t*)&FiltOut);
     /* Store the DC removed value in Working buffer in millivolts range*/
     RESP_WorkingBuff[bufStart] = RESPData;
-  
-  
-    //FiltOut = RESPData[Cur_Chan];
-  
+
+    //int x = *((int*)(&arg));
     /* Store the filtered out sample to the LeadInfo buffer*/
-    FilteredOut[0] = FiltOut ;//(CurrOut);
+    //FilteredOut = &FiltOut ;//(CurrOut);
+    //FilteredOut[0] = CurrAqsSample[0];
+    //FilteredOut = CurrAqsSample;
   
     bufCur++;
     bufStart++;
-    if ( bufStart  == (FILTERORDER-1))
+    if ( bufStart  >= (FILTERORDER-1))
     {
       bufStart=0; 
       bufCur = FILTERORDER-1;
     }
   
-    return ;
+    return FiltOut;
 }
   
 void Respiration_Rate_Detection(int16_t Resp_wave)
@@ -877,116 +877,120 @@ void Respiration_Rate_Detection(int16_t Resp_wave)
     if (Resp_wave < MinThresholdNew) MinThresholdNew = Resp_wave;
     if (Resp_wave > MaxThresholdNew) MaxThresholdNew = Resp_wave;
     
-    if (SampleCount > 800)
-    {
-      SampleCount =0;
-    }
-    
-    if (SampleCountNtve > 800)
-    {
-      SampleCountNtve =0;
-    }
-    
-    if ( startCalc == 1)
-    {
-      if (TimeCnt >= 500)
-      {
-        TimeCnt =0;
-        if ( (MaxThresholdNew - MinThresholdNew) > 400)
-        {
-          MaxThreshold = MaxThresholdNew; 
-          MinThreshold =  MinThresholdNew;
-          AvgThreshold = MaxThreshold + MinThreshold;
-          AvgThreshold = AvgThreshold >> 1;
-        }
-        else
-        {
-          startCalc = 0;
-          Respiration_Rate = 0;
-        }
-      }
+    if (SampleCount > 1000)
+  {
+    SampleCount =0;
+  }
+  if (SampleCountNtve > 1000)
+  {
+    SampleCountNtve =0;
+  }
   
-      PrevPrevPrevSample = PrevPrevSample;
-      PrevPrevSample = PrevSample;
-      PrevSample = Resp_wave;
-      if ( skipCount == 0)
+
+  if ( startCalc == 1)
+  {
+    if (TimeCnt >= 500)
+    {
+      TimeCnt =0;
+      if ( (MaxThresholdNew - MinThresholdNew) > 400)
       {
-        if (PrevPrevPrevSample < AvgThreshold && Resp_wave > AvgThreshold)
-        {
-          if ( SampleCount > 40 &&  SampleCount < 700)
-          {
-  //            Respiration_Rate = 6000/SampleCount;  // 60 * 100/SampleCount;
-            PtiveEdgeDetected = 1;
-            PtiveCnt = SampleCount;
-            skipCount = 4;
-          }
-          SampleCount = 0;
-        }
-        if (PrevPrevPrevSample < AvgThreshold && Resp_wave > AvgThreshold)
-        {
-          if ( SampleCountNtve > 40 &&  SampleCountNtve < 700)
-          {
-            NtiveEdgeDetected = 1;
-            NtiveCnt = SampleCountNtve;
-            skipCount = 4;
-          }
-          SampleCountNtve = 0;
-        }
-        
-        if (PtiveEdgeDetected ==1 && NtiveEdgeDetected ==1)
-        {
-          PtiveEdgeDetected = 0;
-          NtiveEdgeDetected =0;
-          
-          if (abs(PtiveCnt - NtiveCnt) < 5)
-          {
-            PeakCount[peakCount++] = PtiveCnt;
-            PeakCount[peakCount++] = NtiveCnt;
-            if( peakCount == 8)
-            {
-              peakCount = 0;
-              PtiveCnt = PeakCount[0] + PeakCount[1] + PeakCount[2] + PeakCount[3] + 
-                  PeakCount[4] + PeakCount[5] + PeakCount[6] + PeakCount[7];
-              PtiveCnt = PtiveCnt >> 3;
-              Respiration_Rate = 6000/PtiveCnt; // 60 * 100/SampleCount;
-              //SerialUSB.println(Respiration_Rate);
-            }
-          }
-        }
+        MaxThreshold = MaxThresholdNew; 
+        MinThreshold =  MinThresholdNew;
+        AvgThreshold = MaxThreshold + MinThreshold;
+        AvgThreshold = AvgThreshold >> 1;
       }
       else
       {
-        skipCount--;
+        startCalc = 0;
+        Respiration_Rate = 0;
+      }
+    }
+
+    PrevPrevPrevSample = PrevPrevSample;
+    PrevPrevSample = PrevSample;
+    PrevSample = Resp_wave;
+    if ( skipCount == 0)
+    {
+      if (PrevPrevPrevSample < AvgThreshold && Resp_wave > AvgThreshold)
+      {
+        if ( SampleCount > 40 &&  SampleCount < 700)
+        {
+//            Respiration_Rate = 6000/SampleCount;  // 60 * 100/SampleCount;
+          PtiveEdgeDetected = 1;
+          PtiveCnt = SampleCount;
+          skipCount = 4;
+        }
+        SampleCount = 0;
+      }
+      if (PrevPrevPrevSample < AvgThreshold && Resp_wave > AvgThreshold)
+      {
+        if ( SampleCountNtve > 40 &&  SampleCountNtve < 700)
+        {
+          NtiveEdgeDetected = 1;
+          NtiveCnt = SampleCountNtve;
+          skipCount = 4;
+        }
+        SampleCountNtve = 0;
       }
       
-    }
-    else
-    {
-      TimeCnt++;
-      if (TimeCnt >= 500)
+      if (PtiveEdgeDetected ==1 && NtiveEdgeDetected ==1)
       {
-        TimeCnt = 0;
-        if ( (MaxThresholdNew - MinThresholdNew) > 400)
+        PtiveEdgeDetected = 0;
+        NtiveEdgeDetected =0;
+        
+        if (abs(PtiveCnt - NtiveCnt) < 5)
         {
-          startCalc = 1;
-          MaxThreshold = MaxThresholdNew; 
-          MinThreshold =  MinThresholdNew;
-          AvgThreshold = MaxThreshold + MinThreshold;
-          AvgThreshold = AvgThreshold >> 1;
-          PrevPrevPrevSample = Resp_wave;
-          PrevPrevSample = Resp_wave;
-          PrevSample = Resp_wave;
-  
+          PeakCount[peakCount++] = PtiveCnt;
+          PeakCount[peakCount++] = NtiveCnt;
+          if( peakCount == 8)
+          {
+            peakCount = 0;
+            PtiveCnt = PeakCount[0] + PeakCount[1] + PeakCount[2] + PeakCount[3] + 
+                PeakCount[4] + PeakCount[5] + PeakCount[6] + PeakCount[7];
+            PtiveCnt = PtiveCnt >> 3;
+            Respiration_Rate = 6000/PtiveCnt; // 60 * 125/SampleCount;
+          }
         }
       }
     }
-    global_RespirationRate=(uint8_t)Respiration_Rate;
+    else
+    {
+      skipCount--;
+    }
+    
+  }
+  else
+  {
+    TimeCnt++;
+    if (TimeCnt >= 500)
+    {
+      TimeCnt = 0;
+      if ( (MaxThresholdNew - MinThresholdNew) > 400)
+      {
+        startCalc = 1;
+        MaxThreshold = MaxThresholdNew; 
+        MinThreshold =  MinThresholdNew;
+        AvgThreshold = MaxThreshold + MinThreshold;
+        AvgThreshold = AvgThreshold >> 1;
+        PrevPrevPrevSample = Resp_wave;
+        PrevPrevSample = Resp_wave;
+        PrevSample = Resp_wave;
+
+      }
+    }
+  }
+    //Sanity Check
+    
+    //if((Respiration_Rate>0)&&(abs(global_RespirationRate-Respiration_Rate)<50))
+    //{
+      global_RespirationRate=(uint8_t)Respiration_Rate;
+    //}
 }
   
 void RESP_Algorithm_Interface(int16_t CurrSample)
 {
     static int16_t prev_data[64] ={0};
-    static unsigned char Decimeter = 0;
+    //static unsigned char Decimeter = 0;
     char i;
     long Mac=0;
     prev_data[0] = CurrSample;
@@ -1005,7 +1009,7 @@ void RESP_Algorithm_Interface(int16_t CurrSample)
     RESP_Next_Sample = RESP_Second_Next_Sample ;
     RESP_Second_Next_Sample = CurrSample;// << 3 ;
   //  fprintf(fp,"%d\n", CurrSample);
-    Decimeter++;
+    //Decimeter++;
     //Resp_Rr_val = RESP_Second_Next_Sample;
     //if ( Decimeter == 5)
     //{
@@ -1038,11 +1042,11 @@ void ECG_FilterProcess(int16_t * WorkingBuff, int16_t * CoeffBuf, int16_t* Filte
     *FilterOut = (int16_t)(acc >> 15);
 }
 
-void ECG_ProcessCurrSample(int16_t *CurrAqsSample, int16_t *FilteredOut)
+int16_t ECG_ProcessCurrSample(int16_t CurrAqsSample)
 {
   
     static uint16_t ECG_bufStart=0, ECG_bufCur = FILTERORDER-1, ECGFirstFlag = 1;
-    static int16_t ECG_Pvev_DC_Sample, ECG_Pvev_Sample;/* Working Buffer Used for Filtering*/
+    /* Working Buffer Used for Filtering*/
     //  static short ECG_WorkingBuff[2 * FILTERORDER];
     int16_t *CoeffBuf;
     int16_t temp1, temp2, ECGData;
@@ -1055,19 +1059,15 @@ void ECG_ProcessCurrSample(int16_t *CurrAqsSample, int16_t *FilteredOut)
 
     if  ( ECGFirstFlag )                // First Time initialize static variables.
     {
-        for ( Cur_Chan =0 ; Cur_Chan < FILTERORDER; Cur_Chan++)
-        {
-            ECG_WorkingBuff[Cur_Chan] = 0;
-        }
-        ECG_Pvev_DC_Sample = 0;
-        ECG_Pvev_Sample = 0;
+
+
         ECGFirstFlag = 0;
     }
 
     temp1 = NRCOEFF * ECG_Pvev_DC_Sample;       //First order IIR
-    ECG_Pvev_DC_Sample = (CurrAqsSample[0]  - ECG_Pvev_Sample) + temp1;
-    ECG_Pvev_Sample = CurrAqsSample[0];
-    temp2 = ECG_Pvev_DC_Sample ;
+    ECG_Pvev_DC_Sample = (CurrAqsSample  - ECG_Pvev_Sample) + temp1;
+    ECG_Pvev_Sample = CurrAqsSample;
+    temp2 = ECG_Pvev_DC_Sample>>2 ;
     ECGData = (int16_t) temp2;
 
     /* Store the DC removed value in Working buffer in millivolts range*/
@@ -1077,8 +1077,8 @@ void ECG_ProcessCurrSample(int16_t *CurrAqsSample, int16_t *FilteredOut)
     ECG_WorkingBuff[ECG_bufStart] = ECGData;
 
     /* Store the filtered out sample to the LeadInfo buffer*/
-    FilteredOut[0] = FiltOut ;//(CurrOut);
-//     FilteredOut[0] = CurrAqsSample[0];
+    //FiltOut = CurrAqsSample;//(CurrOut);
+    // FilteredOut[0] = CurrAqsSample[0];
 
     ECG_bufCur++;
     ECG_bufStart++;
@@ -1088,7 +1088,7 @@ void ECG_ProcessCurrSample(int16_t *CurrAqsSample, int16_t *FilteredOut)
         ECG_bufStart=0;
         ECG_bufCur = FILTERORDER-1;
     }
-    return ;
+    return FiltOut;
 }
 
 
@@ -1155,7 +1155,7 @@ static void QRS_process_buffer( void )
   {
     QRS_check_sample_crossing_threshold( scaled_result ) ;
   }
-  scaled_result_display[indx++] =  scaled_result ;  
+  //scaled_result_display[indx++] =  scaled_result ;  
 
 }
 
