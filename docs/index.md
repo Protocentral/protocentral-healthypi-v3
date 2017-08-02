@@ -117,6 +117,16 @@ If you ever remove the sensor and wish to connect it back to the HealthyPi, plea
 
 [Photo of temperature sensor connector with color codes]
 
+## Updating the firmware
+
+It is important to always keep your firmware up-to-date for best results. We keep adding changes, bug fixes and enhancements as and when we do updates. HealthyPi will be continued to be developed and new features added.
+
+Be on the lookout for new firmware releases on our Github releases page at:
+
+https://github.com/Protocentral/protocentral-healthypi-v3/releases
+
+To install the new firmware and/or try out your own firmware, check out new [Guide to Firmware Upgrades](firmware-upgrades.md).
+
 ## Frequently Asked Questions
 
 [Coming Soon]
