@@ -23,7 +23,6 @@
 #include <Wire.h>
 #include "wiring_private.h" // pinPeripheral() function
 #include "ads1292r.h"
-#include "afe44xx.h"
 #include "max30205.h"
 
 #define TEMPERATURE 0

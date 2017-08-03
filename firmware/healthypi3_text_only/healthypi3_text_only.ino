@@ -1,16 +1,36 @@
+//////////////////////////////////////////////////////////////////////////////////////////
+//
+//   HealthyPi HAT v3 Arduino Firmware
+//
+//   Copyright (c) 2016 ProtoCentral
+//   
+//   Heartrate and respiration computation based on original code from Texas Instruments
+//
+//   SpO2 computation based on original code from Maxim Integrated 
+//
+//   This software is licensed under the MIT License(http://opensource.org/licenses/MIT). 
+//   
+//   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT 
+//   NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
+//   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
+//   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
+//   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//
+//   For information on how to use the HealthyPi, visit https://github.com/protocentral/protocentral-healthypi-v3
+/////////////////////////////////////////////////////////////////////////////////////////
 
 #include <SPI.h>
 #include <Wire.h>
 #include "wiring_private.h" // pinPeripheral() function
 #include "ads1292r.h"
-#include "afe4490.h"
 #include "max30205.h"
 
 #define TEMPERATURE 0
 #define FILTERORDER         161
 /* DC Removal Numerator Coeff*/
-#define NRCOEFF (0.992)
+//#define NRCOEFF (0.992)
 #define WAVE_SIZE  1
+#define NRCOEFF (0.992)
 
 #define IOPORT_PIN_LEVEL_HIGH 1
 #define IOPORT_PIN_LEVEL_LOW 0
@@ -37,14 +57,14 @@
 //SPI class(MISO
 SPIClass ads1292rSPI (&sercom2, 4, 0, 1, SPI_PAD_2_SCK_3, SERCOM_RX_PAD_0);
 //SPI class(MISO
-SPIClass afe4490SPI (&sercom0, 17, 9 , 8, SPI_PAD_2_SCK_3, SERCOM_RX_PAD_0);    // ads1220 17 -->PA4 9-->  8-->
+SPIClass afe4490SPI (&sercom0, 17, 9 , 8, SPI_PAD_2_SCK_3, SERCOM_RX_PAD_0);    
 //SPI class(MISO
-Uart  RpiSerial(&sercom4, 38, 22 , SERCOM_RX_PAD_1, UART_TX_PAD_0);    // ads1220 17 -->PA4 9-->  8-->
+Uart  RpiSerial(&sercom4, 38, 22 , SERCOM_RX_PAD_1, UART_TX_PAD_0);    
 
 TwoWire max30205(&sercom1, 11, 13);
 
 int8_t NewDataAvailable;
-uint8_t data_len = 23;
+uint8_t data_len = 20;
 
 volatile byte MSB;
 volatile byte data;
@@ -83,8 +103,8 @@ int RESP_Second_Next_Sample = 0 ;
 uint16_t iprocess=0;
 
 int16_t RESP_WorkingBuff[2 * FILTERORDER];
-
-long PostTime=0;
+int16_t Pvev_DC_Sample=0, Pvev_Sample=0;
+int16_t ECG_Pvev_DC_Sample, ECG_Pvev_Sample;
 
 int16_t RespCoeffBuf[FILTERORDER] = 
 {             
@@ -106,21 +126,9 @@ int16_t RespCoeffBuf[FILTERORDER] =
      -221,   -217,   -211,   -203,   -194,   -183,   -170,   -156,   -142,
      -126,   -110,    -93,    -76,    -59,    -42,    -25,     -8,      8,
        24,     38,     52,     65,     77,     88,     97,    106,    113,
-      118,    122,    125,    127,    127,    126,    124,    120
-      
+      118,    122,    125,    127,    127,    126,    124,    120      
 };
 
-int16_t i16respbuff[WAVE_SIZE];
-uint16_t resp_buff_indx=0;
-int16_t res_wave_buff[WAVE_SIZE ];
-int16_t resp_filterout[WAVE_SIZE];
-uint8_t    DataPacket[100];
-
-bool resp_algorithm_process=false;
-uint16_t k=0;
-uint8_t i = 0;
-
-//************** ecg *******************
 int16_t CoeffBuf_40Hz_LowPass[FILTERORDER] = 
 {
       -72,    122,    -31,    -99,    117,      0,   -121,    105,     34,
@@ -142,6 +150,35 @@ int16_t CoeffBuf_40Hz_LowPass[FILTERORDER] =
        20,   -147,    104,     55,   -146,     70,     84,   -137,     34,
       105,   -121,      0,    117,    -99,    -31,    122,    -72
 };
+
+volatile int16_t i16respbuff;
+uint16_t resp_buff_indx=0;
+int16_t res_wave_buff;
+int16_t resp_filterout;
+uint8_t    DataPacket[100];
+
+uint16_t k=0;
+uint8_t i = 0;
+
+#define FS            25    //sampling frequency
+#define BUFFER_SIZE  (FS*4) 
+#define MA4_SIZE  4 // DONOT CHANGE
+#define min(x,y) ((x) < (y) ? (x) : (y))
+
+const uint8_t uch_spo2_table[184]={ 95, 95, 95, 96, 96, 96, 97, 97, 97, 97, 97, 98, 98, 98, 98, 98, 99, 99, 99, 99, 
+              99, 99, 99, 99, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 
+              100, 100, 100, 100, 99, 99, 99, 99, 99, 99, 99, 99, 98, 98, 98, 98, 98, 98, 97, 97, 
+              97, 97, 96, 96, 96, 96, 95, 95, 95, 94, 94, 94, 93, 93, 93, 92, 92, 92, 91, 91, 
+              90, 90, 89, 89, 89, 88, 88, 87, 87, 86, 86, 85, 85, 84, 84, 83, 82, 82, 81, 81, 
+              80, 80, 79, 78, 78, 77, 76, 76, 75, 74, 74, 73, 72, 72, 71, 70, 69, 69, 68, 67, 
+              66, 66, 65, 64, 63, 62, 62, 61, 60, 59, 58, 57, 56, 56, 55, 54, 53, 52, 51, 50, 
+              49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35, 34, 33, 31, 30, 29, 
+              28, 27, 26, 25, 23, 22, 21, 20, 19, 17, 16, 15, 14, 12, 11, 10, 9, 7, 6, 5, 
+              3, 2, 1 } ;
+              
+static  int32_t an_x[ BUFFER_SIZE]; 
+static  int32_t an_y[ BUFFER_SIZE]; 
+
 int16_t ECG_WorkingBuff[2 * FILTERORDER];
 unsigned char Start_Sample_Count_Flag = 0;
 unsigned char first_peak_detect = FALSE ;
@@ -159,52 +196,64 @@ int QRS_Next_Sample = 0 ;
 int QRS_Second_Next_Sample = 0 ;
 
 static uint16_t QRS_B4_Buffer_ptr = 0 ;
-/*   Variable which holds the threshold value to calculate the maxima */
 int16_t QRS_Threshold_Old = 0;
 int16_t QRS_Threshold_New = 0;
 unsigned int sample_count = 0 ;
 
-/* Variable which will hold the calculated heart rate */
 uint16_t QRS_Heart_Rate = 0 ;
-int16_t ecg_wave_buff[1],ecg_filterout[1];
+int16_t ecg_wave_buff,ecg_filterout;
 
-volatile uint8_t global_HeartRate=45;
-volatile uint8_t global_RespirationRate=54;
+volatile uint8_t global_HeartRate=0;
+volatile uint8_t global_RespirationRate=0;
+
+uint16_t aun_ir_buffer[600]; //infrared LED sensor data
+uint16_t aun_red_buffer[600];  //red LED sensor data
+
+int32_t n_buffer_count; //data length
+
+int32_t n_spo2;  //SPO2 value
+int8_t ch_spo2_valid;  //indicator to show if the SPO2 calculation is valid
+int32_t n_heart_rate; //heart rate value
+int8_t  ch_hr_valid;  //indicator to show if the heart rate calculation is valid
+
+long status_byte=0;
+uint8_t LeadStatus=0;
+boolean leadoff_deteted = true;
+uint8_t spo2_probe_open = false;
+long time_elapsed =0;
+long print_time_elapsed=0;
 
 void ads1292_detection_callback(void)
 {
-       digitalWrite(ADS1292R_CS_PIN,LOW);
+    digitalWrite(ADS1292R_CS_PIN,LOW);
 
-     for (int x = 0; x < 9 ; x++)
+    for (int x = 0; x < 9 ; x++)
     {
       SPI_Dummy_Buff[x] = ads1292rSPI.transfer(0xff);
       // SerialUSB.print(SPI_Dummy_Buff[x],HEX); 
     }
+    
+    status_byte = (long)((long)SPI_Dummy_Buff[2] | ((long) SPI_Dummy_Buff[1]) <<8 | ((long) SPI_Dummy_Buff[0])<<16);
+    status_byte  = (status_byte & 0x0f8000) >> 15;
+    LeadStatus = (unsigned char ) status_byte ; 
 
-     digitalWrite(ADS1292R_CS_PIN,HIGH);
+    if(!((LeadStatus & 0x1f) == 0 ))
+    leadoff_deteted  = TRUE;
+    else leadoff_deteted  = FALSE;
+
+    digitalWrite(ADS1292R_CS_PIN,HIGH);
     resultTemp = (unsigned long)((0x00 << 24) | (SPI_Dummy_Buff[6] << 16)| SPI_Dummy_Buff[7] << 8 | SPI_Dummy_Buff[8]);//6,7,8
     resultTemp = (unsigned long)(resultTemp << 8);
 
     sresultTemp = (signed long)(resultTemp);
-    sresultTemp = (signed long)(sresultTemp >> 8);   //  resultTemp = (uint32_t)(resultTemp << 8);
-    sresultTempECG =  sresultTemp>>8;  
-    ecg_wave_buff[0] = (int16_t)  sresultTempECG;   // store for TI's algorithm
+    ecg_wave_buff = (int16_t)  (sresultTemp>>16);   // store for TI's algorithm
       
     resultTemp = (uint32_t)((0 << 24) | (SPI_Dummy_Buff[3] << 16)| SPI_Dummy_Buff[4] << 8 | SPI_Dummy_Buff[5]);//6,7,8
     resultTemp = (uint32_t)(resultTemp << 8);
 
     sresultTempResp = (long)(resultTemp);
-    sresultTempResp = (int16_t)(sresultTempResp>>8);   
-    i16respbuff[resp_buff_indx++] =  (int16_t)sresultTempResp ;
-
-    if(resp_buff_indx >= WAVE_SIZE ) 
-    {
-      for(k=0;k<WAVE_SIZE;k++)
-      res_wave_buff[k] = i16respbuff[k];
-      resp_algorithm_process  =  true;
-      resp_buff_indx =0;
-      
-    }
+    res_wave_buff = (int16_t)(sresultTempResp>>8) ; 
+    
     ads1292DataReceived = true;
   
 }
@@ -215,39 +264,93 @@ void afe4490_detection_callback(void)
    count++;
 }
 
+void setup() 
+{   
+    int cnt;
+    delay(2000);
+    
+    SerialUSB.begin(115200);
+    RpiSerial.begin(57600);
+    
+    max30205begin();
+    
+    ads1292Rbegin();
+    delay(100);
+    afe4490begin();   
+    delay(500);
 
-void setup() {
-  SerialUSB.begin(115200);
-  RpiSerial.begin(115200);
-  
-//#if TEMPERATURE 
-  max30205begin();
-//#endif
-  
-  ads1292Rbegin();
-  delay(100);
-  afe4490begin();   
-  delay(500);
-  AFE4490Write(CONTROL0,0x000001);
+    SerialUSB.println("Initializaion Done");
+    
+    AFE4490Write(CONTROL0,0x000001);
+    n_buffer_count=0;
+
+
+    for (cnt =0 ; cnt < FILTERORDER; cnt++)
+    {
+        RESP_WorkingBuff[cnt] = 0;
+        ECG_WorkingBuff[cnt] = 0;
+    }
+
+    Pvev_DC_Sample = 0;
+    Pvev_Sample = 0;
+    ECG_Pvev_DC_Sample = 0;
+    ECG_Pvev_Sample = 0;
+    
 }
 
+int dec=0;
 
 void loop() 
-{
-   
+{   
    if(ads1292DataReceived == true)
    {
+    if(leadoff_deteted == true)
+     {
+       if(millis() > time_elapsed )
+       leadoff_deteted = true;
+       else leadoff_deteted = false;
+      
+     }
+     else
+     {
+        time_elapsed = millis() + 2000;
+     }
 
-     float temp = getTemperature();//*100; // read temperature for every 100ms
-     //int temperature =  (uint16_t) temp;
+     float temp = getTemperature()*100; // read temperature for every 100ms
+     int temperature =  (uint16_t) temp;
        
-      Resp_ProcessCurrSample(&res_wave_buff[0],&resp_filterout[0]);
-      RESP_Algorithm_Interface(resp_filterout[0]);
+      resp_filterout = Resp_ProcessCurrSample(res_wave_buff);
+      //resp_filterout=res_wave_buff;
+      RESP_Algorithm_Interface(resp_filterout);
 
-      ECG_ProcessCurrSample(&ecg_wave_buff[0],&ecg_filterout[0]);
-      QRS_Algorithm_Interface(ecg_filterout[0]);
+      //ecg_filterout=ecg_wave_buff;
+      ecg_filterout = ECG_ProcessCurrSample(ecg_wave_buff);
+      QRS_Algorithm_Interface(ecg_filterout);
        
-      if(afe4490DataReceived == true)
+      DataPacket[0] = 0x0A;  // sync0
+      DataPacket[1] = 0xFA;
+      DataPacket[2] = (uint8_t) (data_len);
+      DataPacket[3] = (uint8_t) (data_len>>8);
+      DataPacket[4] = 0x02;
+      
+      if(leadoff_deteted == true)
+      {
+            DataPacket[5] = 0;
+          DataPacket[6] =  0;
+    
+          DataPacket[7] =  0;
+          DataPacket[8] =  0;
+      }
+      else
+      {
+          DataPacket[5] =  ecg_filterout;
+          DataPacket[6] =  ecg_filterout>>8;
+    
+          DataPacket[7] =  resp_filterout;
+          DataPacket[8] =  resp_filterout>>8;   
+      }
+
+      if(1) // if(afe4490DataReceived == true)
       {     
           AFE4490_SPI_TX_Buff[0] =  0x2C;
           
@@ -259,11 +362,16 @@ void loop()
           AFE4490_SPI_RX_Buff[2] =  afe4490SPI.transfer(0xff);
           
           AFE4490resultTemp = (uint32_t)( ((0x00 << 24) | AFE4490_SPI_RX_Buff[0] << 16)| AFE4490_SPI_RX_Buff[1] << 8 | AFE4490_SPI_RX_Buff[2]);
-          AFE4490resultTemp = (uint32_t)(AFE4490resultTemp << 8);
+          AFE4490resultTemp = (uint32_t)(AFE4490resultTemp << 10);
+
+          if(dec==5)
+          {
+            aun_ir_buffer[n_buffer_count]=(uint16_t) (AFE4490resultTemp>>16);
+          }
           
           AFE4490sresultTempIR = (int32_t)(AFE4490resultTemp );
-          AFE4490sresultTempIR = (AFE4490sresultTempIR >> 8);// * 100;
-          /*
+          //AFE4490sresultTempIR = (AFE4490sresultTempIR);// * 100;
+          
           AFE4490_SPI_TX_Buff[0] =  0x2A;
           
           afe4490SPI.transfer(AFE4490_SPI_TX_Buff[0]);
@@ -274,53 +382,99 @@ void loop()
           
           AFE4490resultTemp = (uint32_t)( ((0x00 << 24) | AFE4490_SPI_RX_Buff[0] << 16)| AFE4490_SPI_RX_Buff[1] << 8 | AFE4490_SPI_RX_Buff[2]);
           AFE4490resultTemp = (uint32_t)(AFE4490resultTemp << 10);
+
+          if(dec==5)
+          {
+           aun_red_buffer[n_buffer_count]=(uint16_t) (AFE4490resultTemp>>16);
+           dec=0;
+            n_buffer_count++;
+          }
           
+          dec++;
+           
           AFE4490sresultTempRED = (int32_t)(AFE4490resultTemp );
           AFE4490sresultTempRED = (AFE4490sresultTempRED >> 10);// * 100;   
-          */
+          
           digitalWrite(AFE4490_CS_PIN,HIGH);
+ 
+          if(n_buffer_count>99)
+          {
+            
+            estimate_spo2(aun_ir_buffer, 100, aun_red_buffer, &n_spo2, &ch_spo2_valid); 
+            if(n_spo2 == -999)
+            spo2_probe_open = true;
+            else
+            spo2_probe_open = false;
+            
+            n_buffer_count=0;
+          }         
       }  
-
-      if(millis() > PostTime)
-      {
-          SerialUSB.print("hr: ");
-          SerialUSB.print(global_HeartRate,DEC);
-          SerialUSB.print(",");
-    
-          SerialUSB.print("rr: ");
-          SerialUSB.print(global_RespirationRate,DEC);
-          SerialUSB.print(",");
-    
-          SerialUSB.print("spo2: ");
-          SerialUSB.print(spo2);
-          SerialUSB.print(",");
-          
-          SerialUSB.print("temp: ");
-          SerialUSB.print(temp,2);
-          SerialUSB.println();
-
-          RpiSerial.print("hr: ");
-          RpiSerial.print(global_HeartRate,DEC);
-          RpiSerial.print(",");
-    
-          RpiSerial.print("rr: ");
-          RpiSerial.print(global_RespirationRate,DEC);
-          RpiSerial.print(",");
-    
-          RpiSerial.print("spo2: ");
-          RpiSerial.print(spo2);
-          RpiSerial.print(",");
-          
-          RpiSerial.print("temp: ");
-          RpiSerial.print(temp,2);
-          RpiSerial.println();
-
-
-          PostTime = millis()+500;
-      }
-
-      //delay(1000);
       
+      DataPacket[9] =  AFE4490sresultTempIR;  // spo2 ir
+      DataPacket[10] =  AFE4490sresultTempIR>>8;
+      DataPacket[11] =  AFE4490sresultTempIR>>16;
+      DataPacket[12] =  AFE4490sresultTempIR>>24;
+
+      DataPacket[13] =  AFE4490sresultTempRED;  // spo2 ir
+      DataPacket[14] =  AFE4490sresultTempRED>>8;
+      DataPacket[15] =  AFE4490sresultTempRED>>16;
+      DataPacket[16] =  AFE4490sresultTempRED>>24;
+
+      DataPacket[17] =  (uint8_t) temperature;      // temperature
+      DataPacket[18] =  (uint8_t) (temperature >> 8);
+        
+      DataPacket[19] =  global_RespirationRate; //QRS_Heart_Rate;   // calculated from ads1292r
+      DataPacket[20] =  n_spo2;
+  
+      DataPacket[21] =  global_HeartRate;   // systolic pressure
+      DataPacket[22] =  80;     //diastolic pressure
+      DataPacket[23] =  heartRate_BP;  // from BP module
+
+      DataPacket[24] =    spo2_probe_open<< 1 |leadoff_deteted;  // leadstatus
+        
+      DataPacket[25] = 0x00;
+      DataPacket[26] = 0x0b;
+    
+
+      if(millis() > print_time_elapsed )
+      {
+        SerialUSB.println();
+        SerialUSB.println("************** Vitals **************");
+        if(leadoff_deteted == true)
+        {
+          SerialUSB.println("ECG /Respiration Lead ERROR!!!!");
+        }
+        else
+        {
+          SerialUSB.print("Heart Rate :");
+          SerialUSB.print(global_HeartRate);
+          SerialUSB.println(" BPM");
+  
+          SerialUSB.print("Respiration Rate :");
+          SerialUSB.println(global_RespirationRate);
+        }
+
+        if(spo2_probe_open == true)
+        SerialUSB.println("SpO2 Probe ERROR!!!!!");
+        else
+        {
+          SerialUSB.print("SpO2 :");
+          SerialUSB.print(n_spo2);
+          SerialUSB.println("%");
+        }
+
+        SerialUSB.print("Teperature :");
+        SerialUSB.print(getTemperature());    
+        SerialUSB.println(" 'C");
+        SerialUSB.println("***************************************");
+            
+        print_time_elapsed += 1000;;
+      }      
+        
+      for(int i=0; i<27; i++) // transmit the data
+      {
+         RpiSerial.write(DataPacket[i]);        
+      } 
       ads1292DataReceived = false;
   }
 }
@@ -365,9 +519,9 @@ void ads1292Rbegin()
   ADS1292_Reg_Write(0x01,0x00);     //Set sampling rate to 125 SPS
   delay(10);
   
-  ADS1292_Reg_Write(0x02,0b10100000); //Lead-off comp off, test signal disabled
+  ADS1292_Reg_Write(0x02,0b11100000); //Lead-off comp off, test signal disabled
   delay(10);
-  ADS1292_Reg_Write(0x03,0b00010000); //Lead-off defaults
+  ADS1292_Reg_Write(0x03,0b11110000); //Lead-off defaults
   delay(10);
   ADS1292_Reg_Write(0x04,0b01000000);   //Ch 1 enabled, gain 6, connected to electrode in
   delay(10);
@@ -418,7 +572,6 @@ uint8_t readRegister(uint8_t address)
 
   return data;
 }  
-
 
 uint8_t * Read_Data()
 {
@@ -560,26 +713,25 @@ void ADS1292_SPI_Command_Data(unsigned char data_in)
 
 void afe4490begin()
 {
-  
-  afe4490SPI.begin();
-  delay(100);
-  pinMode(AFE4490_START_PIN, OUTPUT);
-  digitalWrite(AFE4490_START_PIN, HIGH);
-  pinMode(AFE4490_DRDY_PIN, INPUT);
-  pinMode(AFE4490_DRDY_PIN, INPUT_PULLUP);
-  attachInterrupt(AFE4490_DRDY_PIN, afe4490_detection_callback , FALLING);
-  delay(100);
-  pinMode(AFE4490_CS_PIN, OUTPUT);
- 
-  pinPeripheral(17, PIO_SERCOM_ALT);
-  pinPeripheral(9, PIO_SERCOM_ALT);
-  pinPeripheral(8, PIO_SERCOM_ALT);
-  delay(100); 
-  afe4490SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));  
-
-  AFE4490Write(CONTROL0,0x000000);
-
-  AFE4490Write(CONTROL0,0x000008);
+    afe4490SPI.begin();
+    delay(100);
+    pinMode(AFE4490_START_PIN, OUTPUT);
+    digitalWrite(AFE4490_START_PIN, HIGH);
+    pinMode(AFE4490_DRDY_PIN, INPUT);
+    pinMode(AFE4490_DRDY_PIN, INPUT_PULLUP);
+    attachInterrupt(AFE4490_DRDY_PIN, afe4490_detection_callback , FALLING);
+    delay(100);
+    pinMode(AFE4490_CS_PIN, OUTPUT);
+    
+    pinPeripheral(17, PIO_SERCOM_ALT);
+    pinPeripheral(9, PIO_SERCOM_ALT);
+    pinPeripheral(8, PIO_SERCOM_ALT);
+    delay(100); 
+    afe4490SPI.beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE0));  
+    
+    AFE4490Write(CONTROL0,0x000000);
+    
+    AFE4490Write(CONTROL0,0x000008);
 
    AFE4490Write(TIAGAIN,0x000000); // CF = 5pF, RF = 500kR
    AFE4490Write(TIA_AMB_GAIN,0x000001);
@@ -620,7 +772,6 @@ void afe4490begin()
    AFE4490Write(ADCRSTENDCT2, 0X000FA0); //timer control
    AFE4490Write(ADCRSTCNT3, 0X001770); //timer control
    AFE4490Write(ADCRSTENDCT3, 0X001770);
-
 }
 
 void AFE4490Write (uint8_t address, uint32_t data)
@@ -629,38 +780,36 @@ void AFE4490Write (uint8_t address, uint32_t data)
     AFE4490_SPI_TX_Buff[1] = ((data >> 16) & 0xFF) ;
     AFE4490_SPI_TX_Buff[2] = ((data >> 8) & 0xFF);            // Write Single byte
     AFE4490_SPI_TX_Buff[3] = (data & 0xFF);         // Write Single byte         // Write Single byte
-
-   digitalWrite(AFE4490_CS_PIN,LOW);
-   delay(5);
-   afe4490SPI.transfer(AFE4490_SPI_TX_Buff[0]);        
-   afe4490SPI.transfer(AFE4490_SPI_TX_Buff[1]); 
-   afe4490SPI.transfer(AFE4490_SPI_TX_Buff[2]); 
-   afe4490SPI.transfer(AFE4490_SPI_TX_Buff[3]);
-   delay(5);
-   digitalWrite(AFE4490_CS_PIN,HIGH);
-}
+    
+    digitalWrite(AFE4490_CS_PIN,LOW);
+    delay(5);
+    afe4490SPI.transfer(AFE4490_SPI_TX_Buff[0]);        
+    afe4490SPI.transfer(AFE4490_SPI_TX_Buff[1]); 
+    afe4490SPI.transfer(AFE4490_SPI_TX_Buff[2]); 
+    afe4490SPI.transfer(AFE4490_SPI_TX_Buff[3]);
+    delay(5);
+    digitalWrite(AFE4490_CS_PIN,HIGH);
+    }
 
 void max30205begin()
 {
-  max30205.begin();
-  pinPeripheral(11, PIO_SERCOM);
-  pinPeripheral(13, PIO_SERCOM);
-  
-  I2CwriteByte(MAX30205_ADDRESS, MAX30205_CONFIGURATION, 0x00); //mode config
-  I2CwriteByte(MAX30205_ADDRESS, MAX30205_THYST ,      0x00); // set threshold
-  I2CwriteByte(MAX30205_ADDRESS, MAX30205_TOS,       0x00); //  
-
+    max30205.begin();
+    pinPeripheral(11, PIO_SERCOM);
+    pinPeripheral(13, PIO_SERCOM);
+    
+    I2CwriteByte(MAX30205_ADDRESS, MAX30205_CONFIGURATION, 0x00); //mode config
+    I2CwriteByte(MAX30205_ADDRESS, MAX30205_THYST ,      0x00); // set threshold
+    I2CwriteByte(MAX30205_ADDRESS, MAX30205_TOS,       0x00); //  
 }
 
 // Wire.h read and write protocols
 void I2CwriteByte(uint8_t address, uint8_t subAddress, uint8_t data)
 {
-  max30205.beginTransmission(address);  // Initialize the Tx buffer
-  max30205.write(subAddress);           // Put slave register address in Tx buffer
-  max30205.write(data);                 // Put data in Tx buffer
-  max30205.endTransmission();           // Send the Tx buffer
+    max30205.beginTransmission(address);  // Initialize the Tx buffer
+    max30205.write(subAddress);           // Put slave register address in Tx buffer
+    max30205.write(data);                 // Put data in Tx buffer
+    max30205.endTransmission();           // Send the Tx buffer
 }
-
 
 float getTemperature(void){
   uint8_t readRaw[2] = {0}; 
@@ -685,84 +834,76 @@ void I2CreadBytes(uint8_t address, uint8_t subAddress, uint8_t * dest, uint8_t c
   }
 }
 
-  void Resp_FilterProcess(int16_t * RESP_WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut)
-  {
-    int32_t acc=0;     // accumulator for MACs
-    int  k;
+void Resp_FilterProcess(int16_t * RESP_WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut)
+{
+  int32_t acc=0;     // accumulator for MACs
+  int  k;
 
- // perform the multiply-accumulate
-    for ( k = 0; k < 161; k++ )
-    {
-        acc += (int32_t)(*CoeffBuf++) * (int32_t)(*RESP_WorkingBuff--);
-    }
-    // saturate the result
-    if ( acc > 0x3fffffff )
-    {
-        acc = 0x3fffffff;
-    } else if ( acc < -0x40000000 )
-    {
-        acc = -0x40000000;
-    }
-    // convert from Q30 to Q15
-    *FilterOut = (int16_t)(acc >> 15);
-    
-    //*FilterOut = *RESP_WorkingBuff;
+// perform the multiply-accumulate
+  for ( k = 0; k < 161; k++ )
+  {
+      acc += (int32_t)(*CoeffBuf++) * (int32_t)(*RESP_WorkingBuff--);
   }
-
-  void Resp_ProcessCurrSample(int16_t *CurrAqsSample, int16_t *FilteredOut)
+  // saturate the result
+  if ( acc > 0x3fffffff )
   {
+      acc = 0x3fffffff;
+  } else if ( acc < -0x40000000 )
+  {
+      acc = -0x40000000;
+  }
+  // convert from Q30 to Q15
+  *FilterOut = (int16_t)(acc >> 15);
   
+}
+
+int16_t Resp_ProcessCurrSample(int16_t CurrAqsSample)
+{
     static uint16_t bufStart=0, bufCur = FILTERORDER-1, FirstFlag = 1;
-    static int16_t Pvev_DC_Sample, Pvev_Sample;
-    int16_t temp1, temp2, RESPData;
     
+    int16_t temp1, temp2;//, RESPData;
+
+    int16_t RESPData;
     /* Count variable*/
     uint16_t Cur_Chan;
     int16_t FiltOut;
-  
-    if  ( FirstFlag )
-    {
-      for ( Cur_Chan =0 ; Cur_Chan < FILTERORDER; Cur_Chan++)
-      {
-        RESP_WorkingBuff[Cur_Chan] = 0;
-      }
-  
-      Pvev_DC_Sample = 0;
-      Pvev_Sample = 0;
-      FirstFlag = 0;
-    }
+ 
     temp1 = NRCOEFF * Pvev_DC_Sample;
-    Pvev_DC_Sample = (CurrAqsSample[0]  - Pvev_Sample) + temp1;
-    Pvev_Sample = CurrAqsSample[0];
-    temp2 = Pvev_DC_Sample >> 2;
+    Pvev_DC_Sample = (CurrAqsSample  - Pvev_Sample) + temp1;
+    Pvev_Sample = CurrAqsSample;
+    temp2 = Pvev_DC_Sample;
     RESPData = (int16_t) temp2;
-  
+    
+    RESPData = CurrAqsSample;
+    
     /* Store the DC removed value in RESP_WorkingBuff buffer in millivolts range*/
+    
+    //RESP_WorkingBuff[bufCur]=(CurrAqsSample[0]);
     RESP_WorkingBuff[bufCur] = RESPData;
+    //FiltOut = RESPData;
     Resp_FilterProcess(&RESP_WorkingBuff[bufCur],RespCoeffBuf,(int16_t*)&FiltOut);
     /* Store the DC removed value in Working buffer in millivolts range*/
     RESP_WorkingBuff[bufStart] = RESPData;
-  
-  
-    //FiltOut = RESPData[Cur_Chan];
-  
+
+    //int x = *((int*)(&arg));
     /* Store the filtered out sample to the LeadInfo buffer*/
-    FilteredOut[0] = FiltOut ;//(CurrOut);
+    //FilteredOut = &FiltOut ;//(CurrOut);
+    //FilteredOut[0] = CurrAqsSample[0];
+    //FilteredOut = CurrAqsSample;
   
     bufCur++;
     bufStart++;
-    if ( bufStart  == (FILTERORDER-1))
+    if ( bufStart  >= (FILTERORDER-1))
     {
       bufStart=0; 
       bufCur = FILTERORDER-1;
     }
   
-    return ;
-  }
+    return FiltOut;
+}
   
-  void Respiration_Rate_Detection(int16_t Resp_wave)
-  {
-  
+void Respiration_Rate_Detection(int16_t Resp_wave)
+{ 
     static uint16_t skipCount = 0, SampleCount = 0,TimeCnt=0, SampleCountNtve=0, PtiveCnt =0,NtiveCnt=0 ;
     static int16_t MinThreshold = 0x7FFF, MaxThreshold = 0x8000, PrevSample = 0, PrevPrevSample = 0, PrevPrevPrevSample =0;
     static int16_t MinThresholdNew = 0x7FFF, MaxThresholdNew = 0x8000, AvgThreshold = 0;
@@ -776,116 +917,119 @@ void I2CreadBytes(uint8_t address, uint8_t subAddress, uint8_t * dest, uint8_t c
     if (Resp_wave > MaxThresholdNew) MaxThresholdNew = Resp_wave;
     
     if (SampleCount > 1000)
-    {
-      SampleCount =0;
-    }
-    if (SampleCountNtve > 1000)
-    {
-      SampleCountNtve =0;
-    }
-    
+  {
+    SampleCount =0;
+  }
+  if (SampleCountNtve > 1000)
+  {
+    SampleCountNtve =0;
+  }
   
-    if ( startCalc == 1)
+
+  if ( startCalc == 1)
+  {
+    if (TimeCnt >= 500)
     {
-      if (TimeCnt >= 625)
+      TimeCnt =0;
+      if ( (MaxThresholdNew - MinThresholdNew) > 400)
       {
-        TimeCnt =0;
-        if ( (MaxThresholdNew - MinThresholdNew) > 500)
-        {
-          MaxThreshold = MaxThresholdNew; 
-          MinThreshold =  MinThresholdNew;
-          AvgThreshold = MaxThreshold + MinThreshold;
-          AvgThreshold = AvgThreshold >> 1;
-        }
-        else
-        {
-          startCalc = 0;
-          Respiration_Rate = 0;
-        }
-      }
-  
-      PrevPrevPrevSample = PrevPrevSample;
-      PrevPrevSample = PrevSample;
-      PrevSample = Resp_wave;
-      if ( skipCount == 0)
-      {
-        if (PrevPrevPrevSample < AvgThreshold && Resp_wave > AvgThreshold)
-        {
-          if ( SampleCount > 50 &&  SampleCount < 875)
-          {
-  //            Respiration_Rate = 6000/SampleCount;  // 60 * 100/SampleCount;
-            PtiveEdgeDetected = 1;
-            PtiveCnt = SampleCount;
-            skipCount = 5;
-          }
-          SampleCount = 0;
-        }
-        if (PrevPrevPrevSample < AvgThreshold && Resp_wave > AvgThreshold)
-        {
-          if ( SampleCountNtve > 50 &&  SampleCountNtve < 875)
-          {
-            NtiveEdgeDetected = 1;
-            NtiveCnt = SampleCountNtve;
-            skipCount = 5;
-          }
-          SampleCountNtve = 0;
-        }
-        
-        if (PtiveEdgeDetected ==1 && NtiveEdgeDetected ==1)
-        {
-          PtiveEdgeDetected = 0;
-          NtiveEdgeDetected =0;
-          
-          if (abs(PtiveCnt - NtiveCnt) < 5)
-          {
-            PeakCount[peakCount++] = PtiveCnt;
-            PeakCount[peakCount++] = NtiveCnt;
-            if( peakCount == 10)
-            {
-              peakCount = 0;
-              PtiveCnt = PeakCount[0] + PeakCount[1] + PeakCount[2] + PeakCount[3] + 
-                  PeakCount[4] + PeakCount[5] + PeakCount[6] + PeakCount[7];
-              PtiveCnt = PtiveCnt >> 3;
-              Respiration_Rate = 7250/PtiveCnt;//6000/PtiveCnt; // 60 * 125/SampleCount;
-              //SerialUSB.println(Respiration_Rate);
-            }
-          }
-        }
+        MaxThreshold = MaxThresholdNew; 
+        MinThreshold =  MinThresholdNew;
+        AvgThreshold = MaxThreshold + MinThreshold;
+        AvgThreshold = AvgThreshold >> 1;
       }
       else
       {
-        skipCount--;
+        startCalc = 0;
+        Respiration_Rate = 0;
+      }
+    }
+
+    PrevPrevPrevSample = PrevPrevSample;
+    PrevPrevSample = PrevSample;
+    PrevSample = Resp_wave;
+    if ( skipCount == 0)
+    {
+      if (PrevPrevPrevSample < AvgThreshold && Resp_wave > AvgThreshold)
+      {
+        if ( SampleCount > 40 &&  SampleCount < 700)
+        {
+//            Respiration_Rate = 6000/SampleCount;  // 60 * 100/SampleCount;
+          PtiveEdgeDetected = 1;
+          PtiveCnt = SampleCount;
+          skipCount = 4;
+        }
+        SampleCount = 0;
+      }
+      if (PrevPrevPrevSample < AvgThreshold && Resp_wave > AvgThreshold)
+      {
+        if ( SampleCountNtve > 40 &&  SampleCountNtve < 700)
+        {
+          NtiveEdgeDetected = 1;
+          NtiveCnt = SampleCountNtve;
+          skipCount = 4;
+        }
+        SampleCountNtve = 0;
       }
       
-    }
-    else
-    {
-      TimeCnt++;
-      if (TimeCnt >= 500)
+      if (PtiveEdgeDetected ==1 && NtiveEdgeDetected ==1)
       {
-        TimeCnt = 0;
-        if ( (MaxThresholdNew - MinThresholdNew) > 400)
+        PtiveEdgeDetected = 0;
+        NtiveEdgeDetected =0;
+        
+        if (abs(PtiveCnt - NtiveCnt) < 5)
         {
-          startCalc = 1;
-          MaxThreshold = MaxThresholdNew; 
-          MinThreshold =  MinThresholdNew;
-          AvgThreshold = MaxThreshold + MinThreshold;
-          AvgThreshold = AvgThreshold >> 1;
-          PrevPrevPrevSample = Resp_wave;
-          PrevPrevSample = Resp_wave;
-          PrevSample = Resp_wave;
-  
+          PeakCount[peakCount++] = PtiveCnt;
+          PeakCount[peakCount++] = NtiveCnt;
+          if( peakCount == 8)
+          {
+            peakCount = 0;
+            PtiveCnt = PeakCount[0] + PeakCount[1] + PeakCount[2] + PeakCount[3] + 
+                PeakCount[4] + PeakCount[5] + PeakCount[6] + PeakCount[7];
+            PtiveCnt = PtiveCnt >> 3;
+            Respiration_Rate = 6000/PtiveCnt; // 60 * 125/SampleCount;
+          }
         }
       }
     }
-    global_RespirationRate=(uint8_t)Respiration_Rate;
+    else
+    {
+      skipCount--;
+    }
+    
   }
-  
-  void RESP_Algorithm_Interface(int16_t CurrSample)
+  else
   {
-  //  static FILE *fp = fopen("RESPData.txt", "w");
+    TimeCnt++;
+    if (TimeCnt >= 500)
+    {
+      TimeCnt = 0;
+      if ( (MaxThresholdNew - MinThresholdNew) > 400)
+      {
+        startCalc = 1;
+        MaxThreshold = MaxThresholdNew; 
+        MinThreshold =  MinThresholdNew;
+        AvgThreshold = MaxThreshold + MinThreshold;
+        AvgThreshold = AvgThreshold >> 1;
+        PrevPrevPrevSample = Resp_wave;
+        PrevPrevSample = Resp_wave;
+        PrevSample = Resp_wave;
+
+      }
+    }
+  }
+    //Sanity Check
+    
+    //if((Respiration_Rate>0)&&(abs(global_RespirationRate-Respiration_Rate)<50))
+    //{
+      global_RespirationRate=(uint8_t)Respiration_Rate;
+    //}
+}
+  
+void RESP_Algorithm_Interface(int16_t CurrSample)
+{
     static int16_t prev_data[64] ={0};
-    static unsigned char Decimeter = 0;
+    //static unsigned char Decimeter = 0;
     char i;
     long Mac=0;
     prev_data[0] = CurrSample;
@@ -908,13 +1052,11 @@ void I2CreadBytes(uint8_t address, uint8_t subAddress, uint8_t * dest, uint8_t c
     //Resp_Rr_val = RESP_Second_Next_Sample;
     //if ( Decimeter == 5)
     //{
-     // Decimeter = 0;
+    //  Decimeter = 0;
   //    RESP_process_buffer();
       Respiration_Rate_Detection(RESP_Second_Next_Sample);
     //}
-  }
-  /*********************************************************************************************************/
-
+}
 
 void ECG_FilterProcess(int16_t * WorkingBuff, int16_t * CoeffBuf, int16_t* FilterOut)
 {
@@ -937,16 +1079,13 @@ void ECG_FilterProcess(int16_t * WorkingBuff, int16_t * CoeffBuf, int16_t* Filte
     }
     // convert from Q30 to Q15
     *FilterOut = (int16_t)(acc >> 15);
-    //*FilterOut = *WorkingBuff;
 }
 
-
-
-
-void ECG_ProcessCurrSample(int16_t *CurrAqsSample, int16_t *FilteredOut)
+int16_t ECG_ProcessCurrSample(int16_t CurrAqsSample)
 {
+  
     static uint16_t ECG_bufStart=0, ECG_bufCur = FILTERORDER-1, ECGFirstFlag = 1;
-    static int16_t ECG_Pvev_DC_Sample, ECG_Pvev_Sample;/* Working Buffer Used for Filtering*/
+    /* Working Buffer Used for Filtering*/
     //  static short ECG_WorkingBuff[2 * FILTERORDER];
     int16_t *CoeffBuf;
     int16_t temp1, temp2, ECGData;
@@ -959,19 +1098,15 @@ void ECG_ProcessCurrSample(int16_t *CurrAqsSample, int16_t *FilteredOut)
 
     if  ( ECGFirstFlag )                // First Time initialize static variables.
     {
-        for ( Cur_Chan =0 ; Cur_Chan < FILTERORDER; Cur_Chan++)
-        {
-            ECG_WorkingBuff[Cur_Chan] = 0;
-        }
-        ECG_Pvev_DC_Sample = 0;
-        ECG_Pvev_Sample = 0;
+
+
         ECGFirstFlag = 0;
     }
 
     temp1 = NRCOEFF * ECG_Pvev_DC_Sample;       //First order IIR
-    ECG_Pvev_DC_Sample = (CurrAqsSample[0]  - ECG_Pvev_Sample) + temp1;
-    ECG_Pvev_Sample = CurrAqsSample[0];
-    temp2 = ECG_Pvev_DC_Sample >> 2;
+    ECG_Pvev_DC_Sample = (CurrAqsSample  - ECG_Pvev_Sample) + temp1;
+    ECG_Pvev_Sample = CurrAqsSample;
+    temp2 = ECG_Pvev_DC_Sample>>2 ;
     ECGData = (int16_t) temp2;
 
     /* Store the DC removed value in Working buffer in millivolts range*/
@@ -981,7 +1116,8 @@ void ECG_ProcessCurrSample(int16_t *CurrAqsSample, int16_t *FilteredOut)
     ECG_WorkingBuff[ECG_bufStart] = ECGData;
 
     /* Store the filtered out sample to the LeadInfo buffer*/
-    FilteredOut[0] = FiltOut ;//(CurrOut);
+    //FiltOut = CurrAqsSample;//(CurrOut);
+    // FilteredOut[0] = CurrAqsSample[0];
 
     ECG_bufCur++;
     ECG_bufStart++;
@@ -991,33 +1127,31 @@ void ECG_ProcessCurrSample(int16_t *CurrAqsSample, int16_t *FilteredOut)
         ECG_bufStart=0;
         ECG_bufCur = FILTERORDER-1;
     }
-    return ;
+    return FiltOut;
 }
 
 
 void QRS_Algorithm_Interface(int16_t CurrSample)
 {
-//  static FILE *fp = fopen("ecgData.txt", "w");
-  static int16_t prev_data[32] ={0};
-  int16_t i;
-  long Mac=0;
-  prev_data[0] = CurrSample;
-  for ( i=31; i > 0; i--)
-  {
-    Mac += prev_data[i];
-    prev_data[i] = prev_data[i-1];
-
-  }
-  Mac += CurrSample;
-  Mac = Mac >> 2;
-  CurrSample = (int16_t) Mac;
-  QRS_Second_Prev_Sample = QRS_Prev_Sample ;
-  QRS_Prev_Sample = QRS_Current_Sample ;
-  QRS_Current_Sample = QRS_Next_Sample ;
-  QRS_Next_Sample = QRS_Second_Next_Sample ;
-  QRS_Second_Next_Sample = CurrSample ;
-    
-  QRS_process_buffer();
+    static int16_t prev_data[32] ={0};
+    int16_t i;
+    long Mac=0;
+    prev_data[0] = CurrSample;
+    for ( i=31; i > 0; i--)
+    {
+      Mac += prev_data[i];
+      prev_data[i] = prev_data[i-1];  
+    }
+    Mac += CurrSample;
+    Mac = Mac >> 2;
+    CurrSample = (int16_t) Mac;
+    QRS_Second_Prev_Sample = QRS_Prev_Sample ;
+    QRS_Prev_Sample = QRS_Current_Sample ;
+    QRS_Current_Sample = QRS_Next_Sample ;
+    QRS_Next_Sample = QRS_Second_Next_Sample ;
+    QRS_Second_Next_Sample = CurrSample ;
+      
+    QRS_process_buffer();
 }
 
 static void QRS_process_buffer( void )
@@ -1031,10 +1165,7 @@ static void QRS_process_buffer( void )
   /* calculating first derivative*/
   first_derivative = QRS_Next_Sample - QRS_Prev_Sample  ;
   
-
-
   /*taking the absolute value*/
-
   if(first_derivative < 0)
   {
     first_derivative = -(first_derivative);
@@ -1052,7 +1183,7 @@ static void QRS_process_buffer( void )
   {
     QRS_Threshold_Old = ((max *7) /10 ) ;
     QRS_Threshold_New = QRS_Threshold_Old ;
-    if(max > 70)
+    //if(max > 70)
     first_peak_detect = TRUE ;
     max = 0;
     QRS_B4_Buffer_ptr = 0;
@@ -1063,10 +1194,9 @@ static void QRS_process_buffer( void )
   {
     QRS_check_sample_crossing_threshold( scaled_result ) ;
   }
-  scaled_result_display[indx++] =  scaled_result ;  
+  //scaled_result_display[indx++] =  scaled_result ;  
 
 }
-
 
 static void QRS_check_sample_crossing_threshold( uint16_t scaled_result )
 {
@@ -1238,4 +1368,233 @@ static void QRS_check_sample_crossing_threshold( uint16_t scaled_result )
    //SerialUSB.println(global_HeartRate);
 }
 
+void estimate_spo2(uint16_t *pun_ir_buffer, int32_t n_ir_buffer_length, uint16_t *pun_red_buffer, int32_t *pn_spo2, int8_t *pch_spo2_valid)
+{
+  uint32_t un_ir_mean,un_only_once ;
+  int32_t k, n_i_ratio_count;
+  int32_t i, s, m, n_exact_ir_valley_locs_count, n_middle_idx;
+  int32_t n_th1, n_npks, n_c_min;   
+  int32_t an_ir_valley_locs[15] ;
+  int32_t n_peak_interval_sum;
+  
+  int32_t n_y_ac, n_x_ac;
+  int32_t n_spo2_calc; 
+  int32_t n_y_dc_max, n_x_dc_max; 
+  int32_t n_y_dc_max_idx, n_x_dc_max_idx; 
+  int32_t an_ratio[5], n_ratio_average; 
+  int32_t n_nume, n_denom ;
+
+  // calculates DC mean and subtract DC from ir
+  un_ir_mean =0; 
+  for (k=0 ; k<n_ir_buffer_length ; k++ ) un_ir_mean += pun_ir_buffer[k] ;
+  un_ir_mean =un_ir_mean/n_ir_buffer_length ;
+    
+  // remove DC and invert signal so that we can use peak detector as valley detector
+  for (k=0 ; k<n_ir_buffer_length ; k++ )  
+    an_x[k] = -1*(pun_ir_buffer[k] - un_ir_mean) ; 
+    
+  // 4 pt Moving Average
+  for(k=0; k< BUFFER_SIZE-MA4_SIZE; k++){
+    an_x[k]=( an_x[k]+an_x[k+1]+ an_x[k+2]+ an_x[k+3])/(int)4;        
+  }
+  // calculate threshold  
+  n_th1=0; 
+  for ( k=0 ; k<BUFFER_SIZE ;k++){
+    n_th1 +=  an_x[k];
+  }
+  n_th1=  n_th1/ ( BUFFER_SIZE);
+  if( n_th1<30) n_th1=30; // min allowed
+  if( n_th1>60) n_th1=60; // max allowed
+
+  for ( k=0 ; k<15;k++) an_ir_valley_locs[k]=0;
+  // since we flipped signal, we use peak detector as valley detector
+  find_peak( an_ir_valley_locs, &n_npks, an_x, BUFFER_SIZE, n_th1, 4, 15 );//peak_height, peak_distance, max_num_peaks 
+  n_peak_interval_sum =0;
+  if (n_npks>=2){
+    for (k=1; k<n_npks; k++) n_peak_interval_sum += (an_ir_valley_locs[k] -an_ir_valley_locs[k -1] ) ;
+    n_peak_interval_sum =n_peak_interval_sum/(n_npks-1);
+    //*pn_heart_rate =(int32_t)( (FS*60)/ n_peak_interval_sum );
+    //*pch_hr_valid  = 1;
+  }
+  else  { 
+    //*pn_heart_rate = -999; // unable to calculate because # of peaks are too small
+    //*pch_hr_valid  = 0;
+  }
+
+  //  load raw value again for SPO2 calculation : RED(=y) and IR(=X)
+  for (k=0 ; k<n_ir_buffer_length ; k++ )  {
+      an_x[k] =  pun_ir_buffer[k] ; 
+      an_y[k] =  pun_red_buffer[k] ; 
+  }
+
+  // find precise min near an_ir_valley_locs
+  n_exact_ir_valley_locs_count =n_npks; 
+  
+  //using exact_ir_valley_locs , find ir-red DC andir-red AC for SPO2 calibration an_ratio
+  //finding AC/DC maximum of raw
+
+  n_ratio_average =0; 
+  n_i_ratio_count = 0; 
+  for(k=0; k< 5; k++) an_ratio[k]=0;
+  for (k=0; k< n_exact_ir_valley_locs_count; k++){
+    if (an_ir_valley_locs[k] > BUFFER_SIZE ){
+      *pn_spo2 =  -999 ; // do not use SPO2 since valley loc is out of range
+      *pch_spo2_valid  = 0; 
+      return;
+    }
+  }
+  // find max between two valley locations 
+  // and use an_ratio betwen AC compoent of Ir & Red and DC compoent of Ir & Red for SPO2 
+  for (k=0; k< n_exact_ir_valley_locs_count-1; k++){
+    n_y_dc_max= -16777216 ; 
+    n_x_dc_max= -16777216; 
+    if (an_ir_valley_locs[k+1]-an_ir_valley_locs[k] >3){
+        for (i=an_ir_valley_locs[k]; i< an_ir_valley_locs[k+1]; i++){
+          if (an_x[i]> n_x_dc_max) {n_x_dc_max =an_x[i]; n_x_dc_max_idx=i;}
+          if (an_y[i]> n_y_dc_max) {n_y_dc_max =an_y[i]; n_y_dc_max_idx=i;}
+      }
+      n_y_ac= (an_y[an_ir_valley_locs[k+1]] - an_y[an_ir_valley_locs[k] ] )*(n_y_dc_max_idx -an_ir_valley_locs[k]); //red
+      n_y_ac=  an_y[an_ir_valley_locs[k]] + n_y_ac/ (an_ir_valley_locs[k+1] - an_ir_valley_locs[k])  ; 
+      n_y_ac=  an_y[n_y_dc_max_idx] - n_y_ac;    // subracting linear DC compoenents from raw 
+      n_x_ac= (an_x[an_ir_valley_locs[k+1]] - an_x[an_ir_valley_locs[k] ] )*(n_x_dc_max_idx -an_ir_valley_locs[k]); // ir
+      n_x_ac=  an_x[an_ir_valley_locs[k]] + n_x_ac/ (an_ir_valley_locs[k+1] - an_ir_valley_locs[k]); 
+      n_x_ac=  an_x[n_y_dc_max_idx] - n_x_ac;      // subracting linear DC compoenents from raw 
+      n_nume=( n_y_ac *n_x_dc_max)>>7 ; //prepare X100 to preserve floating value
+      n_denom= ( n_x_ac *n_y_dc_max)>>7;
+      if (n_denom>0  && n_i_ratio_count <5 &&  n_nume != 0)
+      {   
+        an_ratio[n_i_ratio_count]= (n_nume*100)/n_denom ; //formular is ( n_y_ac *n_x_dc_max) / ( n_x_ac *n_y_dc_max) ;
+        n_i_ratio_count++;
+      }
+    }
+  }
+  // choose median value since PPG signal may varies from beat to beat
+  sort_ascend(an_ratio, n_i_ratio_count);
+  n_middle_idx= n_i_ratio_count/2;
+
+  if (n_middle_idx >1)
+    n_ratio_average =( an_ratio[n_middle_idx-1] +an_ratio[n_middle_idx])/2; // use median
+  else
+    n_ratio_average = an_ratio[n_middle_idx ];
+
+  if( n_ratio_average>2 && n_ratio_average <184){
+    n_spo2_calc= uch_spo2_table[n_ratio_average] ;
+    *pn_spo2 = n_spo2_calc ;
+    *pch_spo2_valid  = 1;//  float_SPO2 =  -45.060*n_ratio_average* n_ratio_average/10000 + 30.354 *n_ratio_average/100 + 94.845 ;  // for comparison with table
+  }
+  else{
+    *pn_spo2 =  -999 ; // do not use SPO2 since signal an_ratio is out of range
+    *pch_spo2_valid  = 0; 
+  }
+}
+
+void find_peak( int32_t *pn_locs, int32_t *n_npks,  int32_t  *pn_x, int32_t n_size, int32_t n_min_height, int32_t n_min_distance, int32_t n_max_num )
+/**
+* \brief        Find peaks
+* \par          Details
+*               Find at most MAX_NUM peaks above MIN_HEIGHT separated by at least MIN_DISTANCE
+*
+* \retval       None
+*/
+{
+    find_peak_above( pn_locs, n_npks, pn_x, n_size, n_min_height );
+    remove_close_peaks( pn_locs, n_npks, pn_x, n_min_distance );
+    *n_npks = min( *n_npks, n_max_num );
+}
+
+void find_peak_above( int32_t *pn_locs, int32_t *n_npks,  int32_t  *pn_x, int32_t n_size, int32_t n_min_height )
+/**
+* \brief        Find peaks above n_min_height
+* \par          Details
+*               Find all peaks above MIN_HEIGHT
+*
+* \retval       None
+*/
+{
+  int32_t i = 1, n_width;
+  *n_npks = 0;
+  
+  while (i < n_size-1){
+    if (pn_x[i] > n_min_height && pn_x[i] > pn_x[i-1]){      // find left edge of potential peaks
+      n_width = 1;
+      while (i+n_width < n_size && pn_x[i] == pn_x[i+n_width])  // find flat peaks
+        n_width++;
+      if (pn_x[i] > pn_x[i+n_width] && (*n_npks) < 15 ){      // find right edge of peaks
+        pn_locs[(*n_npks)++] = i;    
+        // for flat peaks, peak location is left edge
+        i += n_width+1;
+      }
+      else
+        i += n_width;
+    }
+    else
+      i++;
+    //  Serial.println("beat");
+  }
+}
+
+void remove_close_peaks(int32_t *pn_locs, int32_t *pn_npks, int32_t *pn_x, int32_t n_min_distance)
+/**
+* \brief        Remove peaks
+* \par          Details
+*               Remove peaks separated by less than MIN_DISTANCE
+*
+* \retval       None
+*/
+{
+    
+  int32_t i, j, n_old_npks, n_dist;
+    
+  /* Order peaks from large to small */
+  sort_indices_descend( pn_x, pn_locs, *pn_npks );
+
+  for ( i = -1; i < *pn_npks; i++ ){
+    n_old_npks = *pn_npks;
+    *pn_npks = i+1;
+    for ( j = i+1; j < n_old_npks; j++ ){
+      n_dist =  pn_locs[j] - ( i == -1 ? -1 : pn_locs[i] ); // lag-zero peak of autocorr is at index -1
+      if ( n_dist > n_min_distance || n_dist < -n_min_distance )
+        pn_locs[(*pn_npks)++] = pn_locs[j];
+    }
+  }
+
+  // Resort indices int32_to ascending order
+  sort_ascend( pn_locs, *pn_npks );
+}
+
+void sort_ascend(int32_t  *pn_x, int32_t n_size) 
+/**
+* \brief        Sort array
+* \par          Details
+*               Sort array in ascending order (insertion sort algorithm)
+*
+* \retval       None
+*/
+{
+  int32_t i, j, n_temp;
+  for (i = 1; i < n_size; i++) {
+    n_temp = pn_x[i];
+    for (j = i; j > 0 && n_temp < pn_x[j-1]; j--)
+        pn_x[j] = pn_x[j-1];
+    pn_x[j] = n_temp;
+  }
+}
+
+void sort_indices_descend(  int32_t  *pn_x, int32_t *pn_indx, int32_t n_size)
+/**
+* \brief        Sort indices
+* \par          Details
+*               Sort indices according to descending order (insertion sort algorithm)
+*
+* \retval       None
+*/ 
+{
+  int32_t i, j, n_temp;
+  for (i = 1; i < n_size; i++) {
+    n_temp = pn_indx[i];
+    for (j = i; j > 0 && pn_x[n_temp] > pn_x[pn_indx[j-1]]; j--)
+      pn_indx[j] = pn_indx[j-1];
+    pn_indx[j] = n_temp;
+  }
+}
 
