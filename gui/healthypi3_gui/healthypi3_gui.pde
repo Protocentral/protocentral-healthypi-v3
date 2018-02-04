@@ -803,8 +803,8 @@ void ecsProcessData(char rxch)
         {
           if(millis()-mqtt_post_stop_time >= mqtt_post_start_time)
           {
-            mqtt_hr=global_hr;
-            mqtt_rr=global_rr;
+            mqtt_hr=global_HeartRate;
+            mqtt_rr=global_RespirationRate;
             mqtt_temp=global_temp;
             mqtt_spo2=global_spo2;
             
