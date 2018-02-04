@@ -36,16 +36,24 @@ import java.text.SimpleDateFormat;
 // General Java Package
 import java.math.*;
 import controlP5.*;
-//import http.requests.*;
+import mqtt.*;
+import org.eclipse.paho.client.mqttv3.MqttException;
 
+MQTTClient client;
 ControlP5 cp5;
+
+String default_mqtt_server = "io.adafruit.com";
+String default_mqtt_username = "akw";
+String default_mqtt_password = "4746bf5b83de4d5db4e4c03ad8b304cd";
+int mqtt_post_interval=5000; //millisecond
 
 Textlabel lblHR;
 Textlabel lblSPO2;
 Textlabel lblRR;
 Textlabel lblBP;
 Textlabel lblTemp;
-
+Textlabel lblMQTT;
+Textlabel lblMQTTStatus;
 
 /************** Packet Validation  **********************/
 private static final int CESState_Init = 0;
@@ -133,7 +141,7 @@ boolean gStatus;                                        // Boolean variable to s
 int nPoints1 = pSize;
 int totalPlotsHeight=0;
 int totalPlotsWidth=0;
-int heightHeader=50;
+int heightHeader=100;
 int updateCounter=0;
 
 boolean is_raspberrypi=false;
@@ -147,7 +155,22 @@ int global_test=0;
 
 boolean ECG_leadOff,spo2_leadOff;
 boolean ShowWarning = true;
-boolean ShowWaringSpo2=true;
+boolean ShowWarningSpo2=true;
+
+boolean mqtt_on=false;
+int mqtt_post_start_time=0;
+int mqtt_post_stop_time=0;
+
+int mqtt_hr=0;
+int mqtt_rr=0;
+int mqtt_spo2=0;
+float mqtt_temp=0;
+
+Accordion accordion;
+
+String mqtt_server;
+String mqtt_username;
+String mqtt_password;
 
 public void setup() 
 {
@@ -162,15 +185,16 @@ public void setup()
   fullScreen();
    
   // ch
-  heightHeader=50;
+  heightHeader=100;
   println("Height:"+height);
 
   totalPlotsHeight=height-heightHeader;
   
   makeGUI();
   
+  
   plotECG = new GPlot(this);
-  plotECG.setPos(0,0);
+  plotECG.setPos(0,50);
   plotECG.setDim(width, (totalPlotsHeight/3)-10);
   plotECG.setBgColor(0);
   plotECG.setBoxBgColor(0);
@@ -179,7 +203,7 @@ public void setup()
   plotECG.setMar(0,0,0,0);
   
   plotPPG = new GPlot(this);
-  plotPPG.setPos(0,(totalPlotsHeight/3+10));
+  plotPPG.setPos(0,(totalPlotsHeight/3+60));
   plotPPG.setDim(width, (totalPlotsHeight/3)-10);
   plotPPG.setBgColor(0);
   plotPPG.setBoxBgColor(0);
@@ -188,7 +212,7 @@ public void setup()
   plotPPG.setMar(0,0,0,0);
 
   plotResp = new GPlot(this);
-  plotResp.setPos(0,(totalPlotsHeight/3+totalPlotsHeight/3+10));
+  plotResp.setPos(0,(totalPlotsHeight/3+totalPlotsHeight/3+70));
   plotResp.setDim(width, (totalPlotsHeight/3)-10);
   plotResp.setBgColor(0);
   plotResp.setBoxBgColor(0);
@@ -220,11 +244,39 @@ public void setup()
   }
   time = 0;
   
+  mqtt_post_start_time=0;
+  mqtt_post_stop_time=5000;
+  
+  
   delay(2000);
   if(System.getProperty("os.arch").contains("arm"))
   {
-    startSerial("/dev/ttyAMA0");
+    startSerial("/dev/ttyAMA0",57600);
   }
+}
+
+void setupMQTT() 
+{
+    mqtt_server = cp5.get(Textfield.class,"MQTT Server Name").getText();
+    mqtt_username = cp5.get(Textfield.class,"MQTT username").getText();
+    mqtt_password = cp5.get(Textfield.class,"MQTT password").getText();
+      
+    client = new MQTTClient(this);
+    String mqtt_connect_string = "mqtt://"+ mqtt_username +":"+mqtt_password+"@"+mqtt_server;
+    println(mqtt_connect_string);
+    try 
+    {
+      client.connect(mqtt_connect_string);
+      lblMQTTStatus.setText("Connected to:"+mqtt_server);
+    } catch (Exception e)
+    {
+        lblMQTTStatus.setText("Failed to connect");
+    }
+}
+
+void messageReceived(String topic, byte[] payload) 
+{
+  println("MQTT message recd: " + topic + " - " + new String(payload));
 }
 
 public void makeGUI()
@@ -232,7 +284,7 @@ public void makeGUI()
    cp5 = new ControlP5(this);
    cp5.addButton("Close")
      .setValue(0)
-     .setPosition(110,height-heightHeader)
+     .setPosition(width-110,10)
      .setSize(100,40)
      .setFont(createFont("Impact",15))
      .addCallback(new CallbackListener() {
@@ -248,7 +300,7 @@ public void makeGUI()
   
    cp5.addButton("Record")
      .setValue(0)
-     .setPosition(5,height-heightHeader)
+     .setPosition(width-225,10)
      .setSize(100,40)
      .setFont(createFont("Impact",15))
      .addCallback(new CallbackListener() {
@@ -261,14 +313,99 @@ public void makeGUI()
       }
      } 
      );
+     
+     cp5.addButton("MQTT ON/OFF")
+     .setValue(0)
+     .setPosition(width-330,10)
+     .setSize(100,40)
+     .setColorBackground(color(255,0,0))
+     .setFont(createFont("Impact",15))
+     .addCallback(new CallbackListener() {
+      public void controlEvent(CallbackEvent event) {
+        if (event.getAction() == ControlP5.ACTION_RELEASED) 
+        {
+            MQTT_ONOFF();
+        }
+      }
+     } 
+     );
     
-  //List l = Arrays.asList("a", "b", "c", "d", "e", "f", "g", "h");
-  /* add a ScrollableList, by default it behaves like a DropdownList */
-  
+    Group grpMQTTSettings = cp5.addGroup("MQTT Settings")
+                .setBackgroundColor(color(0,0,255))
+                //.setSize(200,100)
+                .setBarHeight(40)
+                //.setSize(200,40)
+                .setFont(createFont("Impact",15))
+                .setBackgroundHeight(300)
+
+                ;
+        
+          cp5.addTextfield("MQTT Server Name")
+           .setPosition(10,5)
+           .setSize(200,40)
+           //.setFont(font)
+           .setFont(createFont("Arial",15))
+           .setFocus(true)
+           .setColor(color(255,255,255))
+           .setText(default_mqtt_server)
+           .moveTo(grpMQTTSettings);
+           
+          cp5.addTextfield("MQTT username")
+           .setPosition(10,70)
+           .setSize(200,40)
+           //.setFont(font)
+           .setFont(createFont("Impact",15))
+           .setFocus(true)
+           .setColor(color(255,255,255))
+           .setText(default_mqtt_username)
+           .moveTo(grpMQTTSettings);
+           
+          cp5.addTextfield("MQTT password")
+           .setPosition(10,140)
+           .setSize(200,40)
+           //.setFont(font)
+           .setFont(createFont("Impact",15))
+           .setFocus(true)
+           .setColor(color(255,255,255))
+           .setText(default_mqtt_password)
+           .moveTo(grpMQTTSettings); 
+           
+         cp5.addTextfield("Feedname")
+           .setPosition(10,210)
+           .setSize(200,40)
+           //.setFont(font)
+           .setFont(createFont("Impact",15))
+           .setFocus(true)
+           .setColor(color(255,255,255))
+           .moveTo(grpMQTTSettings); 
+           
+           cp5.addButton("Save")
+             .setValue(0)
+             .setPosition(110,255)
+             .setSize(100,40)
+             .setFont(createFont("Impact",15))
+             .moveTo(grpMQTTSettings) 
+             .addCallback(new CallbackListener() {
+              public void controlEvent(CallbackEvent event) {
+                if (event.getAction() == ControlP5.ACTION_RELEASED) 
+                {
+                  accordion.close();
+                  //CloseApp();
+                  //cp5.remove(event.getController().getName());
+                }
+              }
+             } 
+             );
+                 
+    accordion = cp5.addAccordion("acc")
+                 .setPosition(width-555,10)
+                 .setWidth(220)
+                 .setHeight(40)
+                       
+                 .addItem(grpMQTTSettings);
+                 
   if(!System.getProperty("os.arch").contains("arm"))
-  {
-      //List portList = port.list();
-      
+  {     
       cp5.addScrollableList("Select Serial port")
          .setPosition(300, 5)
          .setSize(300, 100)
@@ -283,99 +420,87 @@ public void makeGUI()
             {
               if (event.getAction() == ControlP5.ACTION_RELEASED) 
               {
-                startSerial(event.getController().getLabel());
+                startSerial(event.getController().getLabel(),115200);
               }
             }
          } 
        );     
     }
   
-    if(width<=900)
-    {
+
        lblHR = cp5.addTextlabel("lblHR")
-          .setText("Heartrate: --- bpm")
-          .setPosition(width-350,5)
-          .setColorValue(color(255,255,255))
-          .setFont(createFont("Impact",20));
-    }
-    else
-    {
-         lblHR = cp5.addTextlabel("lblHR")
-          .setText("Heartrate: --- bpm")
-          .setPosition(width-550,5)
-          .setColorValue(color(255,255,255))
-          .setFont(createFont("Impact",40));
-    }
-    if(width<=800)
-    {
-        lblSPO2 = cp5.addTextlabel("lblSPO2")
-        .setText("SpO2: --- %")
-        .setPosition(width-300,(totalPlotsHeight/3+10))
-        .setColorValue(color(255,255,255))
-        .setFont(createFont("Impact",20));
-    }
-    else
-    {
-        lblSPO2 = cp5.addTextlabel("lblSPO2")
-        .setText("SpO2: --- %")
-        .setPosition(width-550,(totalPlotsHeight/3+10))
-        .setColorValue(color(255,255,255))
-        .setFont(createFont("Impact",40));
-    }
-    if(width<=800)
-    {
-      lblRR = cp5.addTextlabel("lblRR")
-      .setText("Respiration: --- bpm")
-      .setPosition(width-350,(totalPlotsHeight/3+totalPlotsHeight/3+10))
+      .setText("Heartrate: --- bpm")
+      .setPosition(width-550,50)
       .setColorValue(color(255,255,255))
-      .setFont(createFont("Impact",20));
-    }
-    else
-    {
+      .setFont(createFont("Impact",40));
+
+      lblSPO2 = cp5.addTextlabel("lblSPO2")
+      .setText("SpO2: --- %")
+      .setPosition(width-550,(totalPlotsHeight/3+10))
+      .setColorValue(color(255,255,255))
+      .setFont(createFont("Impact",40));
+ 
+
       lblRR = cp5.addTextlabel("lblRR")
       .setText("Respiration: --- bpm")
       .setPosition(width-550,(totalPlotsHeight/3+totalPlotsHeight/3+10))
       .setColorValue(color(255,255,255))
       .setFont(createFont("Impact",40));
-    }
     
-
-    if(width<=800)
-    {
       lblTemp = cp5.addTextlabel("lblTemp")
-      .setText("Temperature: --- C")
-      .setPosition((width/3)*2-45,height-50)
-      .setColorValue(color(255,255,255))
-      .setFont(createFont("Verdana",25));
-    }
-    else 
-    {
-      lblTemp = cp5.addTextlabel("lblTemp")
-
       .setText("Temperature: --- C")
       .setPosition((width/3)*2,height-60)
       .setColorValue(color(255,255,255))
       .setFont(createFont("Verdana",40));
-    }
+
+      lblMQTT = cp5.addTextlabel("lblMQTT")
+      .setText("MQTT OFF | ")
+      .setPosition(5,height-25)
+      .setColorValue(color(255,255,255))
+      .setFont(createFont("Verdana",20));
+      
+      lblMQTTStatus = cp5.addTextlabel("lblMQTTStatus")
+      .setText("Connected to: none")
+      .setPosition(150,height-25)
+      .setColorValue(color(255,255,255))
+      .setFont(createFont("Verdana",20));
     
      cp5.addButton("logo")
-     .setPosition(5,5)
+     .setPosition(10,10)
      .setImages(loadImage("protocentral.png"), loadImage("protocentral.png"), loadImage("protocentral.png"))
      .updateSize();
           
     if(height<=480) //condition for Raspberry Pi 7" display
     {  
         lblHR.setFont(createFont("Arial",20));
-        lblHR.setPosition(width-200,5);      
+        lblHR.setPosition(width-200,5+heightHeader);      
         
         lblSPO2.setFont(createFont("Arial",20));
-        lblSPO2.setPosition(width-200,(totalPlotsHeight/3+10));
+        lblSPO2.setPosition(width-200,(totalPlotsHeight/3+heightHeader));
       
-        lblTemp.setPosition((width/3)*2,height-60)
+        lblTemp.setPosition((width/3)*2,height-25)
         .setFont(createFont("Verdana",20));
         
-        lblRR.setPosition(width-200,(totalPlotsHeight/3+totalPlotsHeight/3+10))
+        lblRR.setPosition(width-200,(totalPlotsHeight/3+totalPlotsHeight/3+10+heightHeader))
         .setFont(createFont("Impact",20));
+        
+        lblMQTT.setPosition(5,height-25);
+        lblMQTTStatus.setPosition(150,height-25);
+    }
+}
+
+void MQTT_ONOFF()
+{
+    if(false==mqtt_on)
+    {
+        mqtt_on=true;
+        lblMQTT.setText("MQTT ON");
+        setupMQTT();
+    }
+    else
+    {
+        mqtt_on=false;
+        lblMQTT.setText("MQTT OFF");
     }
 }
 
@@ -467,11 +592,11 @@ public void RecordData()
     println("File Not Found");
   }
 }
-void startSerial(String startPortName)
+void startSerial(String startPortName, int baud)
 {
   try
   {
-      port = new Serial(this,startPortName, 115200);
+      port = new Serial(this,startPortName, baud);
       port.clear();
       startPlot = true;
   }
@@ -635,25 +760,23 @@ void ecsProcessData(char rxch)
         
         if(spo2_leadOff == true)
         {
-          if(ShowWaringSpo2 == true)
+          if(ShowWarningSpo2 == true)
            {
              lblSPO2.setColorValue(color(255,0,0));
              lblSPO2.setText("SpO2 Probe Error");
-             ShowWaringSpo2 = false;
+             ShowWarningSpo2 = false;
            }
         }
         else 
         {
-           if(ShowWaringSpo2 == false)
+           if(ShowWarningSpo2 == false)
             {
                lblSPO2.setColorValue(color(255,255,255));
-               ShowWaringSpo2 = true;
+               ShowWarningSpo2 = true;
             }
            lblSPO2.setText("SpO2: " + global_spo2 + "%");
         }
-        
-
-        
+       
         arrayIndex++;
         updateCounter++;
 
@@ -676,6 +799,24 @@ void ecsProcessData(char rxch)
 
         // If record button is clicked, then logging is done
 
+        if(mqtt_on==true)
+        {
+          if(millis()-mqtt_post_stop_time >= mqtt_post_start_time)
+          {
+            mqtt_hr=global_hr;
+            mqtt_rr=global_rr;
+            mqtt_temp=global_temp;
+            mqtt_spo2=global_spo2;
+            
+            thread("publishMQTT");
+            mqtt_post_start_time=millis();
+          }
+          else
+          {
+            //mqtt_post_start_time
+          }
+        }
+        
         if (logging == true)
         {
           try 
@@ -702,6 +843,14 @@ void ecsProcessData(char rxch)
   default:
     break;
   }
+}
+
+void publishMQTT()
+{
+   client.publish(mqtt_username+"/feeds/healthypi.heartrate", ""+mqtt_hr);
+   client.publish(mqtt_username+"/feeds/healthypi.respiration", ""+mqtt_rr);
+   client.publish(mqtt_username+"/feeds/healthypi.spo2", ""+mqtt_spo2);
+   client.publish(mqtt_username+"/feeds/healthypi.temperature", ""+mqtt_temp);       
 }
 
 /*********************************************** Recursive Function To Reverse The data *********************************************************/
