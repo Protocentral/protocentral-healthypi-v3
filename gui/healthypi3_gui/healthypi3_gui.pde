@@ -37,9 +37,15 @@ import java.text.SimpleDateFormat;
 import java.math.*;
 import controlP5.*;
 import mqtt.*;
+import org.eclipse.paho.client.mqttv3.MqttException;
 
 MQTTClient client;
 ControlP5 cp5;
+
+String default_mqtt_server = "io.adafruit.com";
+String default_mqtt_username = "akw";
+String default_mqtt_password = "4746bf5b83de4d5db4e4c03ad8b304cd";
+int mqtt_post_interval=5000; //millisecond
 
 Textlabel lblHR;
 Textlabel lblSPO2;
@@ -149,15 +155,9 @@ int global_test=0;
 
 boolean ECG_leadOff,spo2_leadOff;
 boolean ShowWarning = true;
-boolean ShowWaringSpo2=true;
+boolean ShowWarningSpo2=true;
 
 boolean mqtt_on=false;
-
-String default_mqtt_server = "io.adafruit.com";
-String default_mqtt_username = "akw";
-String default_mqtt_password = "4746bf5b83de4d5db4e4c03ad8b304cd";
-
-int mqtt_post_interval=5000; //millisecond
 int mqtt_post_start_time=0;
 int mqtt_post_stop_time=0;
 
@@ -264,9 +264,14 @@ void setupMQTT()
     client = new MQTTClient(this);
     String mqtt_connect_string = "mqtt://"+ mqtt_username +":"+mqtt_password+"@"+mqtt_server;
     println(mqtt_connect_string);
-    client.connect(mqtt_connect_string);
-    lblMQTTStatus.setText("Connected to:"+mqtt_server);
-    client.publish(mqtt_username+"/feeds/healthypi", "34,42,54,65");
+    try 
+    {
+      client.connect(mqtt_connect_string);
+      lblMQTTStatus.setText("Connected to:"+mqtt_server);
+    } catch (Exception e)
+    {
+        lblMQTTStatus.setText("Failed to connect");
+    }
 }
 
 void messageReceived(String topic, byte[] payload) 
@@ -308,13 +313,22 @@ public void makeGUI()
       }
      } 
      );
-
-    cp5.addToggle("toggle")
+     
+     cp5.addButton("MQTT ON/OFF")
+     .setValue(0)
      .setPosition(width-330,10)
-     .setLabel("MQTT ON/OFF")
-     .setMode(ControlP5.SWITCH)
      .setSize(100,40)
-     ;
+     .setColorBackground(color(255,0,0))
+     .setFont(createFont("Impact",15))
+     .addCallback(new CallbackListener() {
+      public void controlEvent(CallbackEvent event) {
+        if (event.getAction() == ControlP5.ACTION_RELEASED) 
+        {
+            MQTT_ONOFF();
+        }
+      }
+     } 
+     );
     
     Group grpMQTTSettings = cp5.addGroup("MQTT Settings")
                 .setBackgroundColor(color(0,0,255))
@@ -382,8 +396,7 @@ public void makeGUI()
               }
              } 
              );
-         
-              
+                 
     accordion = cp5.addAccordion("acc")
                  .setPosition(width-555,10)
                  .setWidth(220)
@@ -392,9 +405,7 @@ public void makeGUI()
                  .addItem(grpMQTTSettings);
                  
   if(!System.getProperty("os.arch").contains("arm"))
-  {
-      //List portList = port.list();
-      
+  {     
       cp5.addScrollableList("Select Serial port")
          .setPosition(300, 5)
          .setSize(300, 100)
@@ -478,20 +489,19 @@ public void makeGUI()
     }
 }
 
-void toggle(boolean theFlag) 
+void MQTT_ONOFF()
 {
-  if(theFlag==true) 
-  {
-    mqtt_on=true;
-    lblMQTT.setText("MQTT ON");
-    setupMQTT();
-  } 
-  else 
-  {
-    mqtt_on=false;
-    lblMQTT.setText("MQTT OFF");
-  }
-  println("a toggle event.");
+    if(false==mqtt_on)
+    {
+        mqtt_on=true;
+        lblMQTT.setText("MQTT ON");
+        setupMQTT();
+    }
+    else
+    {
+        mqtt_on=false;
+        lblMQTT.setText("MQTT OFF");
+    }
 }
 
 public void draw() 
@@ -750,19 +760,19 @@ void ecsProcessData(char rxch)
         
         if(spo2_leadOff == true)
         {
-          if(ShowWaringSpo2 == true)
+          if(ShowWarningSpo2 == true)
            {
              lblSPO2.setColorValue(color(255,0,0));
              lblSPO2.setText("SpO2 Probe Error");
-             ShowWaringSpo2 = false;
+             ShowWarningSpo2 = false;
            }
         }
         else 
         {
-           if(ShowWaringSpo2 == false)
+           if(ShowWarningSpo2 == false)
             {
                lblSPO2.setColorValue(color(255,255,255));
-               ShowWaringSpo2 = true;
+               ShowWarningSpo2 = true;
             }
            lblSPO2.setText("SpO2: " + global_spo2 + "%");
         }
