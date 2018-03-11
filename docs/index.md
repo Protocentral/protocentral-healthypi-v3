@@ -2,7 +2,7 @@
 
 HealthyPi is the first fully open-source, full-featured vital sign monitor. Using the Raspberry Pi as its computing and display platform, the HealthyPi add-on HAT turns the Raspberry Pi into a vital sign monitoring system.
 
-If you don't already have one, you can now buy HealthyPi from all the following places:
+If you don't already have one, you can now buy HealthyPi from any of the following places:
 
 * [Crowd Supply](https://www.crowdsupply.com/protocentral/healthypi-v3)
 * [ProtoCentral USA](https://protocentral.us/products/13-healthypi-v3-hat-kit-for-raspberry-pi.html)
