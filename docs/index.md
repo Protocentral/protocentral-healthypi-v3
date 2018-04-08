@@ -133,6 +133,30 @@ https://github.com/Protocentral/protocentral-healthypi-v3/releases
 
 To install the new firmware and/or try out your own firmware, check out new [Guide to Firmware Upgrades](firmware-upgrades.md).
 
+## Streaming Packet Format
+
+The HealthyPi sends data out on the serial port in the following packet format.
+
+ Offset| Byte Value                 | Description   
+--------|---------------------------|---------------
+ 0     | 0x0A                       | Start of frame
+ 1     | 0xFA                       | Start of frame
+ 2     | Payload Size LSB           |               
+ 3     | Payload Size MSB           |               
+ 4     | Protocol version           | (currently 0x02)
+ 5-6   | ECG Value                  | Signed int 16,LSB first
+ 7-8   | Respiration Value          | Signed int 16,LSB first
+ 9-12  | PPG IR Value               | Signed int 32, LSB first
+ 13-16 | PPG Red Value              | Signed int 32, LSB first
+ 17-18 | Temperature                | Signed int 16, LSB first
+ 19    | Respiration Rate           | Unsigned int 8
+ 20    | SpO2                       | Unsigned int 8
+ 21    | Heart Rate                 | Unsigned int 8
+ 21-23 | BP (not implemented)       | Not implemented yet
+ 24    | SpO2 and ECG lead status   |
+ 25    | 0x00                       | Footer
+ 26    | 0x0B                       | End of Frame
+
 ## Frequently Asked Questions
 
 [Coming Soon]
