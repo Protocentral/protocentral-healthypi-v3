@@ -10,7 +10,7 @@ If you don't already have one, you can now buy HealthyPi from any of the followi
 * [DigiKey](https://www.digikey.in/product-detail/en/crowd-supply-inc/CS-HEALTHYPI-01/1848-1035-ND)
 * [Mouser](https://www.mouser.in/ProductDetail/392-CS-HEALTHYPI-01)
 
-Repository Contents
+# Repository Contents
 -------------------
 * **/firmware** - Atmel studio and Arduino example sketches.
 * **/Hardware** - All Eagle design files (.brd, .sch)
@@ -123,7 +123,7 @@ If you ever remove the sensor and wish to connect it back to the HealthyPi, plea
 
 [Photo of temperature sensor connector with color codes]
 
-## Updating the firmware
+# Updating the firmware
 
 It is important to always keep your firmware up-to-date for best results. We keep adding changes, bug fixes and enhancements as and when we do updates. HealthyPi will be continued to be developed and new features added.
 
@@ -133,7 +133,7 @@ https://github.com/Protocentral/protocentral-healthypi-v3/releases
 
 To install the new firmware and/or try out your own firmware, check out new [Guide to Firmware Upgrades](firmware-upgrades.md).
 
-## Streaming Packet Format
+# Streaming Packet Format
 
 The HealthyPi sends data out on the serial port in the following packet format.
 
