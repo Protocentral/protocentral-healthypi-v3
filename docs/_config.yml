@@ -1,2 +1,53 @@
-theme: jekyll-theme-minimal
-title: Welcome to HealthyPi 3 !
+# name of the software
+name: ProtoCentral HealthyPi v3
+
+project:
+    version: 3.1.0
+    download_url: https://github.com/Protocentral/protocentral_heartypatch/releases
+
+license:
+    software: MIT License
+    software_url: http://opensource.org/licenses/MIT
+
+    docs: CC BY 3.0
+    docs_url: http://creativecommons.org/licenses/by/3.0/
+
+links:
+    header:
+      - title: Buy a HealthyPi
+        url: https://www.crowdsupply.com/protocentral/healthypi-v3
+      - title: GitHub
+        url: https://github.com/Protocentral/protocentral-healthypi-v3
+    footer:
+      - title: GitHub
+        url: https://github.com/Protocentral/protocentral-healthypi-v3
+      - title: Issues
+        url: https://github.com/Protocentral/protocentral-healthypi-v3/issues?state=open
+
+ui:
+    header:
+        color1: "#080331"
+        color2: "#2b5e77"
+        trianglify: true
+
+social:
+    github:
+        user: protocentral
+        repo: protocentral-healthypi-v3
+    twitter:
+        enabled: true
+        via:
+        hash: #heartypatch
+        account: protocentral
+    facebook:
+        enabled: true
+        profileUrl: https://www.facebook.com/protocentral
+
+analytics:
+    google: UA-123456-1
+
+# Build settings
+markdown: kramdown
+exclude:
+    - Gemfile
+    - Gemfile.lock
