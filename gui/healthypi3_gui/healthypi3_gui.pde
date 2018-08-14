@@ -117,6 +117,8 @@ int lastStepTime = 0;
 boolean clockwise = true;
 float scale = 5;
 
+int currentBG=0; 
+
 /************** File Related Variables **********************/
 
 boolean logging = false;                                // Variable to check whether to record the data or not
@@ -172,8 +174,20 @@ String mqtt_server;
 String mqtt_username;
 String mqtt_password;
 
+PImage bg;
+public PImage point1Graphic;
+public PImage point2Graphic;
+public PImage point3Graphic;
+
+int y=0;
+
 public void setup() 
 {
+    if(System.getProperty("os.arch").contains("arm"))
+  {
+    
+  }
+  
   println(System.getProperty("os.name"));
   println(System.getProperty("os.arch"));
   
@@ -181,10 +195,9 @@ public void setup()
   GPointsArray pointsECG = new GPointsArray(nPoints1);
   GPointsArray pointsResp = new GPointsArray(nPoints1);
 
-  //size(800, 480, JAVA2D);
   fullScreen();
-   
-  // ch
+  //size(800, 480, JAVA2D);
+
   heightHeader=100;
   println("Height:"+height);
 
@@ -247,12 +260,12 @@ public void setup()
   mqtt_post_start_time=0;
   mqtt_post_stop_time=5000;
   
-  
   delay(2000);
   if(System.getProperty("os.arch").contains("arm"))
   {
     startSerial("/dev/ttyAMA0",57600);
   }
+setBG();
 }
 
 void setupMQTT() 
@@ -282,7 +295,7 @@ void messageReceived(String topic, byte[] payload)
 public void makeGUI()
 {  
    cp5 = new ControlP5(this);
-   cp5.addButton("Close")
+   cp5.addButton("Switch")
      .setValue(0)
      .setPosition(width-110,10)
      .setSize(100,40)
@@ -291,7 +304,8 @@ public void makeGUI()
       public void controlEvent(CallbackEvent event) {
         if (event.getAction() == ControlP5.ACTION_RELEASED) 
         {
-          CloseApp();
+           setBG();
+          //CloseApp();
           //cp5.remove(event.getController().getName());
         }
       }
@@ -408,9 +422,9 @@ public void makeGUI()
   {     
       cp5.addScrollableList("Select Serial port")
          .setPosition(300, 5)
-         .setSize(300, 100)
+         .setSize(200, 100)
          .setFont(createFont("Impact",15))
-         .setBarHeight(50)
+         .setBarHeight(40)
          .setItemHeight(40)
          .addItems(port.list())
          .setType(ScrollableList.DROPDOWN) // currently supported DROPDOWN and LIST
@@ -506,8 +520,8 @@ void MQTT_ONOFF()
 
 public void draw() 
 {
-  background(0);
-
+  //background(0);
+  background(bg);
   GPointsArray pointsPPG = new GPointsArray(nPoints1);
   GPointsArray pointsECG = new GPointsArray(nPoints1);
   GPointsArray pointsResp = new GPointsArray(nPoints1);
@@ -530,19 +544,63 @@ public void draw()
   plotResp.setPoints(pointsResp);
   
   plotECG.beginDraw();
-  plotECG.drawBackground();
+  if(currentBG!=1)
+  {
+    plotECG.drawPoint(new GPoint(arrayIndex,ecgdata[arrayIndex]), point1Graphic);
+  }
   plotECG.drawLines();
   plotECG.endDraw();
   
   plotPPG.beginDraw();
-  plotPPG.drawBackground();
+  if(currentBG!=1)
+  {
+    plotPPG.drawPoint(new GPoint(arrayIndex,spo2data[arrayIndex]), point2Graphic);
+  }
   plotPPG.drawLines();
   plotPPG.endDraw();
 
   plotResp.beginDraw();
-  plotResp.drawBackground();
+  if(currentBG!=1)
+  {
+    plotResp.drawPoint(new GPoint(arrayIndex,respdata[arrayIndex]), point3Graphic);
+  }
   plotResp.drawLines();
   plotResp.endDraw();
+}
+
+public void setBG() 
+{
+  switch(currentBG)
+  {
+    case 0:
+      bg = loadImage("bg_black.jpg");
+      point1Graphic=loadImage("hero.png");
+      point2Graphic = loadImage("batman.png");
+      point3Graphic = loadImage("hero.png");
+      currentBG++;
+      break;
+    case 1:
+      bg = loadImage("game.png");
+      point1Graphic = loadImage("rabbit.png");
+      point2Graphic = loadImage("pacman.png");
+      point3Graphic = loadImage("duck.png");
+      currentBG++;
+      break;
+    case 2:
+      bg = loadImage("night.jpg");
+      point1Graphic=loadImage("hero.png");
+      point2Graphic = loadImage("batman.png");
+      point3Graphic = loadImage("hero.png");
+      currentBG++;
+      break;
+  }
+  if(currentBG>2)
+  {
+    currentBG=0;
+  }
+  
+  println("currentBG:"+currentBG);
+  
 }
 
 public void CloseApp() 
