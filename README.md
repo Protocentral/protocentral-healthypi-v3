@@ -7,7 +7,6 @@ HealthyPi is the first fully open-source, full-featured vital sign monitor. Usin
 If you don't already have one, you can now buy HealthyPi from any of the following places:
 
 * [Crowd Supply](https://www.crowdsupply.com/protocentral/healthypi-v3)
-* [ProtoCentral USA](https://protocentral.us/products/13-healthypi-v3-hat-kit-for-raspberry-pi.html)
 * [ProtoCentral India (Worldwide)](https://www.protocentral.com/open-source-health/1252-healthypi-v3-complete-kit-includes-raspberry-pi.html)
 * [DigiKey](https://www.digikey.in/product-detail/en/crowd-supply-inc/CS-HEALTHYPI-01/1848-1035-ND)
 * [Mouser](https://www.mouser.in/ProductDetail/392-CS-HEALTHYPI-01)
