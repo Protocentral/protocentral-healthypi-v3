@@ -183,6 +183,7 @@ Tip:
 2) ECG Electrodes
 
 ECG or Electrocardiogram helps to measure the electrical activity of the heart. To measure this a set of electrodes are placed on different parts of the body.
+
 ![ECG cable connections](images//ECG cable connections.jpg)
 
 * Red - Attach the red electrode to the right side of your chest.
