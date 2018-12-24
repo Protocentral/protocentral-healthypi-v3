@@ -162,6 +162,8 @@ The HealthyPi sends data out on the serial port in the following packet format.
  25    | 0x00                       | Footer
  26    | 0x0B                       | End of Frame
 
+# Frequently asked questions
+
 ## How to use the sensors?
 
 The Healthy Pi v3 board itself has provisions for biometric sensors that can detect human vital signs. Using these sensors in an accurate way can play a crucial role in getting the correct readings. Let’s take a closer look.
