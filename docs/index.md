@@ -188,7 +188,7 @@ Tip:
 * Blue - Attach the blue electrode to the left side of your chest. 
 * Black - Attach the black electrode to the right side of your lower waist.
 
-Temperature sensor
+3) Temperature sensor
 
 The MAX 30205 body temperature sensor helps to detect the body temperature through the skin using the sensor.
 
@@ -212,7 +212,8 @@ Healthy Pi offers some very flexible options when it comes to its use as well as
      The board can be connected to any system/device using the USB cable. This would power up the board in standalone operations.
 
 ## Troubleshooting
-**With the Display
+
+### With the Display
 
 1) If everything is assembled but the display is blank?
 
@@ -241,7 +242,7 @@ Healthy Pi offers some very flexible options when it comes to its use as well as
  * The sensors need to be properly connected to the Healthy Pi board.
  * Sensors need to be securely attached to the body.
 
-**Healthy Pi with the Raspberry Pi
+### Healthy Pi with the Raspberry Pi
 
 1) Which OS needs to be used?
 
@@ -270,7 +271,7 @@ Healthy Pi offers some very flexible options when it comes to its use as well as
 * Check the power adapter, use an isolated power supply to power up the Hpi.
 * Check the sensor connection
  
-**Standalone Healthy Pi with Desktop
+### Standalone Healthy Pi with Desktop
 
 1) The board is plugged in but the USB is not getting detected.
 
