@@ -169,7 +169,7 @@ The Healthy Pi v3 board itself has provisions for biometric sensors that can det
 
 1) SPO2 probe
 
-    The Spo2 probe also known as the Saturation of Peripheral Oxygen is a handy probe that can help to detect the level of Oxygen in the blood.
+The Spo2 probe also known as the Saturation of Peripheral Oxygen is a handy probe that can help to detect the level of Oxygen in the blood.
 
 Tip: 
 * Gently open the probe and place your index finger inside.
@@ -180,7 +180,7 @@ Tip:
 
 2) ECG Electrodes
 
-    ECG or Electrocardiogram helps to measure the electrical activity of the heart. To measure this a set of electrodes are placed on different parts of the body.
+ECG or Electrocardiogram helps to measure the electrical activity of the heart. To measure this a set of electrodes are placed on different parts of the body.
 
 ![ECG cable connections](images//ECG cable connections.jpg)
 
