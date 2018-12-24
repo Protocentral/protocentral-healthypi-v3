@@ -288,7 +288,7 @@ If the above does not work then check it again with another PC.
 * Give a check on whether it is the latest Java download from this link https://java.com/en/download/
 
 4) The application opens but there is a “port error”
-*    Setup up virtual COM port of the Healthy Pi
+* Setup up virtual COM port of the Healthy Pi
 
 5) The application is blank/ No streaming
  * Firmware may be outdated, needs to be upgraded.
@@ -296,8 +296,6 @@ If the above does not work then check it again with another PC.
 6) Vitals are unclear or noisy
  * Check the sensors if they are connected
  * Remove the AC adapter from the laptop, as it adds to the noise.
-
-**Note:- Refer to the image in the link provided. It clearly depicts how the ECG electrodes needs to be placed on the body.
 
 *Please submit an [issue on Github](https://github.com/Protocentral/protocentral-healthypi-v3/issues/new) if you face any problems with the HealthyPi.*
 
