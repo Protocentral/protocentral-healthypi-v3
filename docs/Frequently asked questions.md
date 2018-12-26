@@ -49,93 +49,52 @@ Healthy Pi offers some very flexible options when it comes to its use as well as
 ## Troubleshooting
 
 ### With the Display
+| Issue                                                | Solution                                                                            |
+|------------------------------------------------------|-------------------------------------------------------------------------------------|
+| If everything is assembled but the display is blank? | Check the “Y” cable provided.                                                       |
+|                                                      | Ensure that the boards are plugged in.                                              |
+|                                                      | There may be loose connection in the connecting cable from display to Raspberry Pi3 |
+| Raspberry Pi is powering up but still rebooting?     | There might be insufficient power. Check the power source.                          |
+|                                                      | The sd card may be corrupted( Check for preloaded software)                         |
+|                                                      | Use the power adapter provided in the kit.                                          |
+| Raspberry Pi booted but UI not starting up?          | The operating system might not be upgraded.                                         |
+| UI is stable but, nothing is plotted?                | Healthy Pi board is not properly plugged in.                                        |
+|                                                      | Firmware may be corrupted, needs to be reloaded.                                    |
+| The vital parameters are noisy. Why?                 | Check the power source, use the adapter provided.                                   |
+|                                                      | The sensors need to be properly connected to the Healthy Pi board.                  |
+|                                                      | The sensors need to be securely attached to the body.                               |
 
-| Issue  | Solution |
-| ------------- | ------------- |
-|If everything is assembled but the display is blank?  |* Check the “Y” cable provided.  |
-| --- |* Ensure that the boards are plugged in |
-|--- | * Loose connection in the connecting cable from display to Raspberry Pi3 |
 
-1) If everything is assembled but the display is blank?
-
-* Check the “Y” cable provided.
-* Ensure that the boards are plugged in.
-* Loose connection in the connecting cable from display to Raspberry Pi3
-
-2) Raspberry Pi is powering up but still rebooting?
-
- * There might be Insufficient power. Check the power source.
- * The sd card may be corrupted( Check for preloaded software)
- * Use the power adapter provided in the kit.
-
-3) Raspberry Pi booted but UI not starting up?
-
- * The operating system might not be upgraded.
-
-4) UI is stable but, nothing is plotted?
-
- * Healthy Pi board is not properly plugged in.
- * Firmware may be corrupted, needs to be reloaded.
-
-5) The vital parameters are noisy. Why?
-
- * Check the power source, use the adapter provided.
- * The sensors need to be properly connected to the Healthy Pi board.
- * Sensors need to be securely attached to the body.
 
 ### Healthy Pi with the Raspberry Pi
 
-1) Which OS needs to be used?
-
- * Raspbian software with the latest release.
-
-2) How can you set up the UI?
-
- * Install the OS, enter the following in the terminal 
-
-    curl -sS http://pi.protocentral.com/pi.sh | sudo bash
-
-3) Why does error occur once the command runs?
-
- * Ensure that it runs in the Superuser mode.
-
-4) What if the UI opens, the screen is blank and no plotting?
-
-  * Check the Healthy Pi board connection. If the firmware is outdated or corrupted, reload it.
-
- Healthy Pi board communicates with Raspberry Pi OSM serial interface, ensure the serial lines are free.
-
-( Note: On the display screen, observe the temperature values. If there are changes then it is working)
-
-5) What if the signal quality is bad or the vitals are incorrect?
-
-* Check the power adapter, use an isolated power supply to power up the Hpi.
-* Check the sensor connection
+| Issue                                                          | Solution                                                                                                |
+|----------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
+| Which OS needs to be used?                                     | The Raspbian software with the latest release.                                                          |
+| How can you set up the UI?                                     | Install the OS, enter the following in the terminal                                                     |
+|                                                                | curl -sS http://pi.protocentral.com/pi.sh | sudo bash                                                   |
+| Why does error occur once the command runs?                    | Ensure that it runs in the Superuser mode.                                                              |
+| What if the UI opens, the screen is blank and no plotting?     | Check the Healthy Pi board connection. If the firmware is outdated or corrupted, reload it.             |
+|                                                                | Healthy Pi board communicates with Raspberry Pi OSM serial interface, ensure the serial lines are free. |
+|                                                                | ( Note: On the display screen, observe the temperature values. If there are changes then it is working) |
+| What if the signal quality is bad or the vitals are incorrect? | Check the power adapter, use an isolated power supply to power up the Hpi.                              |
+|                                                                | Check the sensor connection         
  
 ### Standalone Healthy Pi with Desktop
 
-1) The board is plugged in but the USB is not getting detected.
+| Issue                                                        | Solution                                                                                                           |
+|--------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------|
+| The board is plugged in but the USB is not getting detected. | Healthy Pi board is preloaded with the Arduino M0 bootloader which is pre-installed. However, check the following: |
+|                                                              | Check the USB cable                                                                                                |
+|                                                              | Change the USB port                                                                                                |
+|                                                              | Check whether the Power LED on the board glows.                                                                    |
+|                                                              | If the above does not work then check it again with another PC.                                                    |
+| If the USB is enumerated then when can you see the output?   | Download the latest release file, run the .exe file.                                                               |
+| The application is downloaded but it will not open?          | Give a check on whether it is the latest Java download from this link https://java.com/en/download/                |
+| The application opens but there is a “port error”?           | Setup up virtual COM port of the Healthy Pi                                                                        |
+| The application is blank/ No streaming                       | Firmware may be outdated, needs to be upgraded.                                                                    |
+| Vitals are unclear or noisy                                  | Check the sensors if they are connected                                                                            |
+|                                                              | Remove the AC adapter from the laptop, as it adds to the noise.   
 
-Healthy Pi board is preloaded with the Arduino M0 bootloader which is pre-installed. However, check the following:
-* Check the USB cable
-* Change the USB port
-* Check whether the Power LED on the board glows.
-If the above does not work then check it again with another PC.
-
-2) If the USB is enumerated then when can you see the output?
- * Download the latest release file, run the .exe file.
-
-3) The application is downloaded but it will not open?
-* Give a check on whether it is the latest Java download from this link https://java.com/en/download/
-
-4) The application opens but there is a “port error”
-* Setup up virtual COM port of the Healthy Pi
-
-5) The application is blank/ No streaming
- * Firmware may be outdated, needs to be upgraded.
-
-6) Vitals are unclear or noisy
- * Check the sensors if they are connected
- * Remove the AC adapter from the laptop, as it adds to the noise.
 
 *Please submit an [issue on Github](https://github.com/Protocentral/protocentral-healthypi-v3/issues/new) if you face any problems with the HealthyPi.*
