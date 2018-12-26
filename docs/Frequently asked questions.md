@@ -17,7 +17,7 @@ Tip:
 
 ECG or Electrocardiogram helps to measure the electrical activity of the heart. To measure this a set of electrodes are placed on different parts of the body.
 
-![ECG cable connections](images//ECG cable connections.jpg)
+![ECG cable connection](images//ECG cable connection.jpg)
 
 * Red - Attach the red electrode to the right side of your chest.
 * Blue - Attach the blue electrode to the left side of your chest. 
